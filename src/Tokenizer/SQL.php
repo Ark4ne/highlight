@@ -140,7 +140,9 @@ class SQL implements TokenizerInterface
         }
 
         if (!empty($str)) {
-            $tokens = array_merge($tokens, $this->tokenize($str));
+            $tokens[] = ['type'=> 'unknown', 'value' => substr($str, 0, 1)];
+
+            $tokens = array_merge($tokens, $this->tokenize(substr($str, 1)));
         }
 
         return $tokens;
