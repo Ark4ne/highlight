@@ -37,8 +37,10 @@ class Shell implements RenderInterface
         foreach ($tokens as $token) {
             switch ($token['type']){
                 case TokenizerInterface::TOKEN_OPERATOR:
-                case TokenizerInterface::TOKEN_VAR:
                     $str .= $this->colorize($token['value'], self::C_GRAY);
+                    break;
+                case TokenizerInterface::TOKEN_VAR:
+                    $str .= $this->colorize($token['value'], self::C_GRAY_LIGHT);
                     break;
                 case TokenizerInterface::TOKEN_KEY:
                     $str .= $this->colorize($token['value'], self::C_PURPLE);
@@ -54,6 +56,10 @@ class Shell implements RenderInterface
                     break;
                 case TokenizerInterface::TOKEN_COMMENT:
                     $str .= $this->colorize($token['value'], self::C_BLACK_LIGHT);
+                    break;
+
+                case TokenizerInterface::TOKEN_NAMESPACE:
+                    $str .= $this->colorize($token['value'], self::C_GRAY);
                     break;
 
                 case TokenizerInterface::TOKEN_PUNCTUATION:
