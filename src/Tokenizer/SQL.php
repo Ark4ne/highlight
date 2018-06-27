@@ -22,9 +22,9 @@ class SQL implements TokenizerInterface
 
     /*private*/ const _x_keywords_ln = '(?:DATABASE|DELETE FROM|UNION ALL|UNION|EXCEPT|INTERSECT|SELECT|FROM|WHERE|LEFT OUTER JOIN|RIGHT OUTER JOIN|OUTER JOIN|LEFT JOIN|RIGHT JOIN|INNER JOIN|JOIN|ORDER BY|GROUP BY|HAVING|LIMIT|OFFSET|SET|VALUES|ON DUPLICATE)';
 
-    /*private*/ const _x_keywords = '(?:' . self::_x_keywords_ln . '|LOW_PRIORITY|VARCHARACTER|CONSTRAINT|MEDIUMBLOB|MEDIUMTEXT|VARBINARY|DUPLICATE|EXPANSION|INTERSECT|MEDIUMINT|DATABASE|DISTINCT|LANGUAGE|OPTIMIZE|SMALLTEXT|SMALLINT|TINYTEXT|TINYBLOB|LONGTEXT|LONGBLOB|UNSIGNED|VIRTUAL|TRIGGER|ANALYZE|BETWEEN|BOOLEAN|COMMENT|DEFAULT|DELAYED|EXPLAIN|FOREIGN|INTEGER|NATURAL|PRIMARY|TINYINT|VARCHAR|BINARY|UNLOCK|USAGE|BIGINT|ENGINE|CREATE|DELETE|EXCEPT|GLOBAL|HAVING|INSERT|OFFSET|SELECT|UNIQUE|UPDATE|VALUES|INDEX|GROUP|DOUBLE|INNER|LIMIT|ORDER|OUTER|QUERY|RIGHT|TABLE|UNION|WHERE|FALSE|NAME|BLOB|CHAR|DESC|FROM|INTO|JOIN|LEFT|LIKE|MODE|NULL|TRUE|TEXT|WITH|ALL|AND|XOR|ASC|INT|KEY|NOT|SET|USE|AS|BY|IN|ON|OR|IS)';
+    /*private*/ const _x_keywords = '(?:' . self::_x_keywords_ln . '|HIGH_PRIORITY|LOW_PRIORITY|VARCHARACTER|CONSTRAINT|MEDIUMBLOB|MEDIUMTEXT|VARBINARY|DUPLICATE|EXPANSION|INTERSECT|MEDIUMINT|DATABASE|DISTINCT|LANGUAGE|OPTIMIZE|SMALLTEXT|SMALLINT|TINYTEXT|TINYBLOB|LONGTEXT|LONGBLOB|UNSIGNED|VIRTUAL|TRIGGER|ANALYZE|BETWEEN|BOOLEAN|COMMENT|DEFAULT|DELAYED|EXPLAIN|FOREIGN|INTEGER|NATURAL|PRIMARY|TINYINT|VARCHAR|BINARY|UNLOCK|USAGE|BIGINT|ENGINE|CREATE|DELETE|EXCEPT|GLOBAL|HAVING|INSERT|OFFSET|SELECT|UNIQUE|UPDATE|VALUES|INDEX|GROUP|DOUBLE|INNER|LIMIT|ORDER|OUTER|QUERY|RIGHT|TABLE|UNION|WHERE|FALSE|NAME|BLOB|CHAR|DESC|FROM|INTO|JOIN|LEFT|LIKE|MODE|NULL|TRUE|TEXT|WITH|ALL|AND|XOR|ASC|INT|KEY|NOT|SET|USE|AS|BY|IN|ON|OR|IS)';
 
-    const X_KEYWORD = '(?:^(' . self::_x_keywords . ')((?: |' . self::_x_ponc . '))|^(' . self::_x_keywords . ')$)';
+    const X_KEYWORD = '(?:^(' . self::_x_keywords . ')((?:\s|' . self::_x_ponc . '))|^(' . self::_x_keywords . ')$)';
 
     /*private*/ const _x_operator = '(?:\|\*\=|\^\-\=|\<\=|\&\=|%\=|/\=|\*\=|\-\=|\+\=|\<\>|\>\=|\-|\<|\>|\=|\^|\&|%|/|\*|\+)';
 
@@ -46,12 +46,15 @@ class SQL implements TokenizerInterface
 
     const X_FUNC = '^(' . self::_x_func . ')\s*\(.+\)';
 
+    const X_COMMENT = '^((?:#|--)[^\n\r]+|(/\*)[\w\W]+)';
+
     const RX = [
         'space'    => self::X_WHITESPACE,
         'ponc'     => self::X_PONC,
         'key'      => self::X_KEYWORD,
         'func'     => self::X_FUNC,
         'var'      => self::X_VAR,
+        'comment'  => self::X_COMMENT,
         'operator' => self::X_OPERATOR,
         'value'    => self::X_VALUABLE,
     ];
@@ -112,6 +115,17 @@ class SQL implements TokenizerInterface
                     [['type' => self::TOKEN_FUNCTION, 'value' => $match[1]]],
                     $this->tokenize(substr($match[0], strlen($match[1])))
                 );
+            case 'comment':
+                if (!empty($match[2])) {
+                    $stop = strpos($match[0], '*/');
+
+                    return array_merge(
+                      [['type' => self::TOKEN_COMMENT, 'value' => substr($match[0], 0, $stop + 2)]],
+                      $this->tokenize(substr($match[0], $stop + 2))
+                    );
+                }
+
+                return [['type' => self::TOKEN_COMMENT, 'value' => $match[1]]];
         }
     }
 

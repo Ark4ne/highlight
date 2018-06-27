@@ -13,6 +13,8 @@ use Highlight\TokenizerInterface;
 class Shell implements RenderInterface
 {
 
+    const C_BLACK        = "0;30";
+    const C_BLACK_LIGHT  = "1;30";
     const C_RED          = "0;31";
     const C_RED_LIGHT    = "1;31";
     const C_GREEN        = "0;32";
@@ -45,10 +47,13 @@ class Shell implements RenderInterface
                     $str .= $this->colorize($token['value'], self::C_YELLOW);
                     break;
                 case TokenizerInterface::TOKEN_STRING:
-                    $str .= $this->colorize($token['value'], self::C_CYAN);
+                    $str .= $this->colorize($token['value'], self::C_GREEN_LIGHT);
                     break;
                 case TokenizerInterface::TOKEN_INT:
                     $str .= $this->colorize($token['value'], self::C_BLUE);
+                    break;
+                case TokenizerInterface::TOKEN_COMMENT:
+                    $str .= $this->colorize($token['value'], self::C_BLACK_LIGHT);
                     break;
 
                 case TokenizerInterface::TOKEN_PUNCTUATION:
