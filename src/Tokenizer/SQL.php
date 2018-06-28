@@ -63,6 +63,13 @@ class SQL implements TokenizerInterface
         'value'     => self::X_VALUABLE,
     ];
 
+    const STYLE_NONE = 0;
+    const STYLE_COMPRESS = 1;
+    const STYLE_NESTED = 2;
+    const STYLE_EXPAND = 4;
+
+    public static $style = self::STYLE_NESTED;
+
     private function token($type, $match)
     {
         switch ($type) {
@@ -85,6 +92,13 @@ class SQL implements TokenizerInterface
                 return [['type' => self::TOKEN_VAR, 'value' => $match[1]]];
             case 'namespace':
                 if (isset($match[4])) {
+                    if (preg_match('~^' . self::X_KEYWORD . '~i', $match[4])) {
+                        return array_merge(
+                            $this->parse($match[3]),
+                            [['type' => self::TOKEN_KEY, 'value' => $match[4]]]
+                        );
+                    }
+
                     return array_merge(
                         $this->parse($match[3]),
                         [['type' => self::TOKEN_NAMESPACE, 'value' => $match[4]]]
@@ -113,7 +127,7 @@ class SQL implements TokenizerInterface
                 }
                 if (preg_match('&^(' . self::_x_bind . ')&', $str, $m)) {
                     return array_merge(
-                        [['type' => self::TOKEN_VAR, 'value' => $m[1]]],
+                        [['type' => self::TOKEN_STRING, 'value' => $m[1]]],
                         $this->parse(substr($str, strlen($m[1])))
                     );
                 }
@@ -124,7 +138,15 @@ class SQL implements TokenizerInterface
 
                 do {
                     $next = strpos($str, $m[0], $next + 1);
-                } while ($next > 1 && substr($str, $next - 1, 1) == '\\' && substr($str, $next - 2, 1) != '\\');
+                } while (
+                    $next > 1
+                    && (
+                        // "\" string escape
+                        ($str[$next - 1] == '\\' && $str[$next - 2] != '\\')
+                        // double sign ' '' ' escape
+                        || (isset($str[$next + 1]) && $str[$next + 1] == $m[0] && $next++)
+                    )
+                );
 
                 return array_merge(
                     [['type' => self::TOKEN_STRING, 'value' => substr($str, 0, $next + 1)]],
@@ -140,7 +162,7 @@ class SQL implements TokenizerInterface
                     $stop = strpos($match[0], '*/');
 
                     return array_merge(
-                      [['type' => self::TOKEN_COMMENT, 'value' => substr($match[0], 0, $stop + 2)]],
+                      [['type' => self::TOKEN_BLOCK_COMMENT, 'value' => substr($match[0], 0, $stop + 2)]],
                       $this->parse(substr($match[0], $stop + 2))
                     );
                 }
@@ -174,7 +196,7 @@ class SQL implements TokenizerInterface
         }
 
         if (!empty($str)) {
-            $tokens[] = ['type' => 'unknown', 'value' => substr($str, 0, 1)];
+            $tokens[] = ['type' => 'unknown', 'value' => $str[0]];
 
             $tokens = array_merge($tokens, $this->parse(substr($str, 1)));
         }
@@ -191,40 +213,73 @@ class SQL implements TokenizerInterface
 
     public function format(array $tokens): array
     {
-        $_tokens = [];
-
-        foreach ($tokens as $idx => $token) {
-            if ($token['type'] == self::TOKEN_SPACE) {
-                continue;
-            }
-
-            switch ($token['type']) {
-                case self::TOKEN_KEY:
-                    if (preg_match('~^(' . self::_x_keywords_ln . ')~i', $token['value'])) {
-                        $_tokens[] = ['type' => self::TOKEN_SPACE, 'value' => PHP_EOL];
+        switch (self::$style) {
+            case self::STYLE_COMPRESS:
+                $_tokens = [];
+                foreach ($tokens as $token) {
+                    if ($token['type'] == self::TOKEN_SPACE
+                        || $token['type'] == self::TOKEN_COMMENT
+                        || $token['type'] == self::TOKEN_BLOCK_COMMENT) {
+                        continue;
                     }
-                    break;
-                case self::TOKEN_PUNCTUATION:
-                    if ($token['value'] == ',' || $token['value'] == ')' || $token['value'] == '.') {
-                        array_pop($_tokens);
-                    }
-            }
 
-            $_tokens[] = $token;
-
-            switch ($token['type']) {
-                case self::TOKEN_FUNCTION:
-                    break;
-                case self::TOKEN_PUNCTUATION:
-                    if ($token['value'] == '(' || $token['value'] == '.') {
-                        break;
+                    if ($token['type'] == self::TOKEN_PUNCTUATION) {
+                        if ($token['value'] == ',' || $token['value'] == ')' || $token['value'] == '.') {
+                            array_pop($_tokens);
+                        }
                     }
-                default:
-                    $_tokens[] = ['type' => self::TOKEN_SPACE, 'value' => ' '];
-            }
+
+                    $_tokens[] = $token;
+
+                    if (!($token['type'] == self::TOKEN_FUNCTION
+                        || ($token['type'] == self::TOKEN_PUNCTUATION
+                            && ($token['value'] == '(' || $token['value'] == '.')))
+                    ) {
+                        $_tokens[] = ['type' => self::TOKEN_SPACE, 'value' => ' '];
+                    }
+                }
+                return $_tokens;
+            case self::STYLE_NESTED:
+                $_tokens = [];
+                foreach ($tokens as $token) {
+                    if ($token['type'] == self::TOKEN_SPACE) {
+                        continue;
+                    }
+
+                    switch ($token['type']) {
+                        case self::TOKEN_KEY:
+                            if (preg_match('~^(' . self::_x_keywords_ln . ')~i', $token['value'])) {
+                                $_tokens[] = ['type' => self::TOKEN_SPACE, 'value' => PHP_EOL];
+                            }
+                            break;
+                        case self::TOKEN_PUNCTUATION:
+                            if ($token['value'] == ',' || $token['value'] == ')' || $token['value'] == '.') {
+                                array_pop($_tokens);
+                            }
+                    }
+
+                    $_tokens[] = $token;
+
+                    switch ($token['type']) {
+                        case self::TOKEN_FUNCTION:
+                            break;
+                        case self::TOKEN_COMMENT:
+                            $_tokens[] = ['type' => self::TOKEN_SPACE, 'value' => PHP_EOL];
+                            break;
+                        case self::TOKEN_PUNCTUATION:
+                            if ($token['value'] == '(' || $token['value'] == '.') {
+                                break;
+                            }
+                        default:
+                            $_tokens[] = ['type' => self::TOKEN_SPACE, 'value' => ' '];
+                    }
+                }
+                return $_tokens;
+            case self::STYLE_NONE:
+            default:
+                return $tokens;
         }
 
-        return $_tokens;
     }
 }
 
