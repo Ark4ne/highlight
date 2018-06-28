@@ -14,11 +14,11 @@ class Html implements RenderInterface
 {
 
     private static $styles = [
-        TokenizerInterface::TOKEN_NAMESPACE => 'color:#eceff1',
-        TokenizerInterface::TOKEN_VAR => 'color:#9876AA',
-        TokenizerInterface::TOKEN_KEY => 'color:#CC7832;',
-        TokenizerInterface::TOKEN_FUNCTION => 'color:#ffc66d',
-        TokenizerInterface::TOKEN_STRING => 'color:#6A9759',
+        TokenizerInterface::TOKEN_NAMESPACE => 'color:#90caf9',
+        TokenizerInterface::TOKEN_VAR => 'color:#ce93d8',
+        TokenizerInterface::TOKEN_KEY => 'color:#fb8c00;',
+        TokenizerInterface::TOKEN_FUNCTION => 'color:#fdd835;font-style:italic',
+        TokenizerInterface::TOKEN_STRING => 'color:#a5d6a7',
         TokenizerInterface::TOKEN_INT => 'color:#6897BB ',
     ];
 
@@ -34,6 +34,8 @@ class Html implements RenderInterface
         foreach ($tokens as $token) {
             if (isset(self::$styles[$token['type']])) {
                 $str .= '<code style="' . self::$styles[$token['type']] . '">' . $token['value'] . '</code>';
+            } elseif($token['type'] == TokenizerInterface::TOKEN_SPACE) {
+                $str .= str_replace(' ', '&nbsp;', $token['value']);
             } else {
                 $str .= $token['value'];
             }

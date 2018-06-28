@@ -21,11 +21,22 @@ class Highlighter
         $this->render = $render;
     }
 
+    /**
+     * @param \string $str
+     *
+     * @return \string
+     */
     public function highlight(string $str): string
     {
         return $this->render->render($this->tokenizer->tokenize($str));
     }
 
+    /**
+     * @param \string $tokenizerClass
+     * @param \string $renderClass
+     *
+     * @return \Highlight\Highlighter
+     */
     public static function factory(string $tokenizerClass, string $renderClass): self
     {
         return new self(new $tokenizerClass, new $renderClass);
