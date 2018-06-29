@@ -50,9 +50,9 @@ class SQL implements TokenizerInterface
 
     /*private*/ const _x_str = '(?:\'[\w\W]*\'|"[\w\W]*")';
 
-    /*private*/ const _x_int = '\d+';
+    /*private*/ const _x_number = '\d+(?:\.\d+)';
 
-    const X_VALUABLE = '^((?:' . self::_x_int . '|' . self::_x_str . '|' . self::_x_bind . '))';
+    const X_VALUABLE = '^((?:' . self::_x_number . '|' . self::_x_str . '|' . self::_x_bind . '))';
 
     /*private*/ const _x_var = '`?(?:[a-zA-Z_]\w*)`?';
 
@@ -161,10 +161,10 @@ class SQL implements TokenizerInterface
             case 'value':
                 $str = $match[0];
 
-                if (preg_match('&^' . self::_x_int . '$&', $str)) {
+                if (preg_match('&^' . self::_x_number . '$&', $str)) {
                     return [['type' => self::TOKEN_INT, 'value' => $str]];
                 }
-                if (preg_match('&^(' . self::_x_int . ')&', $str, $m)) {
+                if (preg_match('&^(' . self::_x_number . ')&', $str, $m)) {
                     return array_merge(
                         [['type' => self::TOKEN_INT, 'value' => $m[1]]],
                         $this->parse(substr($str, strlen($m[1])))
