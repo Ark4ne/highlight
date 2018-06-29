@@ -48,7 +48,7 @@ class SQL implements TokenizerInterface
 
     /*private*/ const _x_bind = '(?:(?:@|:)\w+:?|\?)';
 
-    /*private*/ const _x_str = '[\'"].+[\'"]';
+    /*private*/ const _x_str = '(?:\'[\w\W]*\'|"[\w\W]*")';
 
     /*private*/ const _x_int = '\d+';
 
