@@ -26,7 +26,7 @@ class Highlighter
      *
      * @return \string
      */
-    public function highlight(string $str): string
+    public function highlight($str)
     {
         return $this->render->render($this->tokenizer->tokenize($str));
     }
@@ -37,7 +37,7 @@ class Highlighter
      *
      * @return \Highlight\Highlighter
      */
-    public static function factory(string $tokenizerClass, string $renderClass): self
+    public static function factory($tokenizerClass, $renderClass)
     {
         return new self(new $tokenizerClass, new $renderClass);
     }

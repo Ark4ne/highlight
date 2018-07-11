@@ -13,7 +13,7 @@ use Highlight\TokenizerInterface;
 class Prism implements RenderInterface
 {
 
-    public function render(array $tokens): string
+    public function render(array $tokens)
     {
         $str = '';
 

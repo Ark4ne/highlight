@@ -96,7 +96,12 @@ class SQL implements TokenizerInterface
 
     private static $rx_delimiter = '^(;)';
 
-    private function delimiter(string $str)
+    /**
+     * Set SQL delimiter
+     *
+     * @param string $str
+     */
+    private function delimiter($str)
     {
         self::$compute_delimiter = $str;
         self::$rx_delimiter = '^(' . preg_quote($str, '~') . ')';
@@ -222,7 +227,14 @@ class SQL implements TokenizerInterface
         }
     }
 
-    private function parse(string $str): array
+    /**
+     * Tokenize a string
+     *
+     * @param string $str
+     *
+     * @return array
+     */
+    private function parse($str)
     {
         if (empty($str)) {
             return [];
@@ -260,7 +272,14 @@ class SQL implements TokenizerInterface
         return $tokens;
     }
 
-    public function tokenize(string $str): array
+    /**
+     * Tokenize and pre format a SQL string
+     *
+     * @param string $str
+     *
+     * @return array
+     */
+    public function tokenize($str)
     {
         $this->delimiter(self::$delimiter);
 
@@ -269,7 +288,7 @@ class SQL implements TokenizerInterface
         return $this->format($tokens);
     }
 
-    public function format(array $tokens): array
+    public function format(array $tokens)
     {
         switch (self::$style) {
             case self::STYLE_COMPRESS:
@@ -326,7 +345,7 @@ class SQL implements TokenizerInterface
                                 && !(
                                     ($upper = strtoupper($token['value']))
                                     && ($upper == 'UPDATE' || $upper == 'DELETE')
-                                    && ($prev = $tokens[$idx - 1] ?? null)
+                                    && ($prev = (isset($tokens[$idx - 1]) ? $tokens[$idx - 1] : null))
                                     && $prev['type'] == self::TOKEN_KEY
                                 )
                             ) {
@@ -363,7 +382,7 @@ class SQL implements TokenizerInterface
 
                     switch ($token['type']) {
                         case self::TOKEN_FUNCTION:
-                            if (($next = $tokens[$idx + 1] ?? null) && !($next['value'] == '(')) {
+                            if (($next = (isset($tokens[$idx + 1]) ? $tokens[$idx + 1] : null)) && !($next['value'] == '(')) {
                                 $_tokens[] = ['type' => self::TOKEN_SPACE, 'value' => ' '];
                             }
                             break;
@@ -377,7 +396,7 @@ class SQL implements TokenizerInterface
                                 }
                                 $indent++;
                                 $indents[] = $token['value'];
-                            } elseif (($next = $tokens[$idx + 1] ?? null)
+                            } elseif (($next = (isset($tokens[$idx + 1]) ? $tokens[$idx + 1] : null))
                                 && !($next['value'] == ','
                                     || $next['value'] == ')'
                                     || $next['value'] == '.'
@@ -455,11 +474,11 @@ class SQL implements TokenizerInterface
                                     }
                                     break;
                                 case ',':
-                                    switch ($indents[count($indents) - 1] ?? null) {
+                                    switch (isset($indents[count($indents) - 1]) ? $indents[count($indents) - 1] : null) {
                                         case 'indent':
                                         default:
                                             if (self::$style == self::STYLE_EXPAND
-                                                && ($next = $tokens[$idx + 1] ?? null)
+                                                && ($next = (isset($tokens[$idx + 1]) ? $tokens[$idx + 1] : null))
                                                 && !($next['type'] == self::TOKEN_INT
                                                     || $next['type'] == self::TOKEN_STRING
                                                     || $next['type'] == self::TOKEN_COMMENT)) {
@@ -467,7 +486,7 @@ class SQL implements TokenizerInterface
                                                 $next_indent=true;
                                                 break;
                                             } elseif (self::$style == self::STYLE_NESTED
-                                                && ($next = $tokens[$idx + 1] ?? null)
+                                                && ($next = (isset($tokens[$idx + 1]) ? $tokens[$idx + 1] : null))
                                                 && !($next['type'] == self::TOKEN_INT
                                                     || $next['type'] == self::TOKEN_STRING
                                                     || $next['type'] == self::TOKEN_COMMENT)) {
@@ -490,7 +509,7 @@ class SQL implements TokenizerInterface
                                     break;
                                 case ')':
                                 default:
-                                    if (($next = $tokens[$idx + 1] ?? null)
+                                    if (($next = (isset($tokens[$idx + 1]) ? $tokens[$idx + 1] : null))
                                         && !($next['value'] == ','
                                             || $next['value'] == ')'
                                             || $next['value'] == '.'
@@ -500,7 +519,7 @@ class SQL implements TokenizerInterface
                             }
                             break;
                         default:
-                            if (($next = $tokens[$idx + 1] ?? null)
+                            if (($next = (isset($tokens[$idx + 1]) ? $tokens[$idx + 1] : null))
                                 && !($next['value'] == ','
                                     || $next['value'] == ')'
                                     || $next['value'] == '.'

@@ -18,8 +18,10 @@ class Html implements RenderInterface
         TokenizerInterface::TOKEN_VAR => 'color:#ce93d8',
         TokenizerInterface::TOKEN_KEY => 'color:#fb8c00;',
         TokenizerInterface::TOKEN_FUNCTION => 'color:#fdd835;font-style:italic',
-        TokenizerInterface::TOKEN_STRING => 'color:#a5d6a7',
+        TokenizerInterface::TOKEN_STRING => 'color:#6A8759',
         TokenizerInterface::TOKEN_INT => 'color:#6897BB ',
+        TokenizerInterface::TOKEN_COMMENT => 'color:#808080 ',
+        TokenizerInterface::TOKEN_BLOCK_COMMENT => 'color:#808080 ',
     ];
 
     public static function styles(array $colors)
@@ -27,7 +29,7 @@ class Html implements RenderInterface
         self::$styles = array_merge(self::$styles, $colors);
     }
 
-    public function render(array $tokens): string
+    public function render(array $tokens)
     {
         $str = '';
 

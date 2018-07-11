@@ -21,5 +21,12 @@ interface TokenizerInterface
     const TOKEN_COMMENT       = 'comment';
     const TOKEN_BLOCK_COMMENT = 'block_comment';
 
-    public function tokenize(string $str): array;
+    /**
+     * Tokenize a string
+     *
+     * @param string $str
+     *
+     * @return array
+     */
+    public function tokenize($str);
 }

@@ -30,7 +30,7 @@ class Shell implements RenderInterface
     const C_GRAY         = "0;37";
     const C_GRAY_LIGHT   = "1;37";
 
-    public function render(array $tokens): string
+    public function render(array $tokens)
     {
         $str = '';
 
@@ -73,7 +73,7 @@ class Shell implements RenderInterface
         return $str;
     }
 
-    private function colorize(string $str, string $color): string
+    private function colorize($str, $color)
     {
         if (self::hasColorSupport()) {
             return "\033[{$color}m$str\033[0m";

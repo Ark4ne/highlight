@@ -9,5 +9,12 @@ namespace Highlight;
  */
 interface RenderInterface
 {
-    public function render(array $tokens): string;
+    /**
+     * Render an list of tokens
+     *
+     * @param array $tokens
+     *
+     * @return string
+     */
+    public function render(array $tokens);
 }

@@ -35,7 +35,7 @@ class PHP implements TokenizerInterface
 
     const X_NUMBER = '^(\d+(?:\.\d+)?)';
 
-    const X_STRING = '^(?:(["\'])[\W\w]*|(<<<(?P<here>[a-zA-Z]+)(?:\r\n|\r|\n)?)([\W\w]*)((?:\r\n|\r|\n)?(?P=here);))';
+    const X_STRING = '^(?:(["\'])[\W\w]*|(<<<\s*(?P<here>[a-zA-Z]+)(?:\r\n|\r|\n)?)([\W\w]*)((?:\r\n|\r|\n)?(?P=here);))';
 
     const X_COMMENT = '^(//[^\n\r]+|(/[*])[\w\W]+)';
 
@@ -59,12 +59,7 @@ class PHP implements TokenizerInterface
             case 'keywords':
                 return [
                     'match' => $match[1],
-                    'tokens' => [
-                        [
-                            'type'  => self::TOKEN_KEY,
-                            'value' => $match[1]
-                        ]
-                    ]
+                    'tokens' => [['type'  => self::TOKEN_KEY, 'value' => $match[1]]]
                 ];
             case 'function':
                 $matched = $match[1] . $match[7];
@@ -115,32 +110,17 @@ class PHP implements TokenizerInterface
             case 'punctuation':
                 return [
                     'match' => $match[1],
-                    'tokens' => [
-                        [
-                            'type'  => self::TOKEN_PUNCTUATION,
-                            'value' => $match[1]
-                        ]
-                    ]
+                    'tokens' => [['type'  => self::TOKEN_PUNCTUATION, 'value' => $match[1]]]
                 ];
             case 'words':
                 return [
                     'match' => $match[1],
-                    'tokens' => [
-                        [
-                            'type'  => self::TOKEN_NAMESPACE,
-                            'value' => $match[1]
-                        ]
-                    ]
+                    'tokens' => [['type'  => self::TOKEN_NAMESPACE, 'value' => $match[1]]]
                 ];
             case 'classes':
                 return [
                     'match' => $match[1],
-                    'tokens' => [
-                        [
-                            'type'  => self::TOKEN_NAMESPACE,
-                            'value' => $match[1]
-                        ]
-                    ]
+                    'tokens' => [['type'  => self::TOKEN_NAMESPACE, 'value' => $match[1]]]
                 ];
             case 'variable':
                 if(!empty($match[3])) {
@@ -165,12 +145,7 @@ class PHP implements TokenizerInterface
             case 'number':
                 return [
                     'match' => $match[1],
-                    'tokens' => [
-                        [
-                            'type'  => self::TOKEN_INT,
-                            'value' => $match[1]
-                        ]
-                    ]
+                    'tokens' => [['type'  => self::TOKEN_INT, 'value' => $match[1]]]
                 ];
             case 'string':
 
@@ -250,23 +225,17 @@ class PHP implements TokenizerInterface
             case 'whitespace':
                 return [
                     'match' => $match[0],
-                    'tokens' => [[
-                                     'type' => self::TOKEN_SPACE,
-                                     'value' => $match[0]
-                                 ]]
+                    'tokens' => [['type'  => self::TOKEN_SPACE, 'value' => $match[0]]],
                 ];
         }
 
         return [
             'match' => $match[0],
-            'tokens' => [[
-                             'type' => 'unknown',
-                             'value' => $match[0]
-                         ]]
+            'tokens' => [['type' => 'unknown', 'value' => $match[0]]]
         ];
     }
 
-    private function parse($str): array
+    private function parse($str)
     {
         if (empty($str)) {
             return [];
@@ -305,7 +274,7 @@ class PHP implements TokenizerInterface
         return $tokens;
     }
 
-    public function tokenize(string $str): array
+    public function tokenize($str)
     {
         return $this->parse($str);
     }
