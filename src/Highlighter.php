@@ -23,12 +23,13 @@ class Highlighter
 
     /**
      * @param \string $str
+     * @param array   $options
      *
      * @return \string
      */
-    public function highlight($str)
+    public function highlight($str, array $options = [])
     {
-        return $this->render->render($this->tokenizer->tokenize($str));
+        return $this->render->render($this->tokenizer->tokenize($str), $options);
     }
 
     /**
