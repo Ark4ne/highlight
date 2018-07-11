@@ -19,7 +19,11 @@ class PHP implements TokenizerInterface
 
     const X_WHITESPACE = '^' . self::_x_whitespaces;
 
-    const X_KEYWORDS = '^((?:<\?php|<\?=|\?>|a(?:bstract|nd|rray|s))|(?:c(?:a(?:llable|se|tch)|l(?:ass|one)|on(?:st|tinue)))|(?:d(?:e(?:clare|fault)|ie|o))|(?:e(?:cho|lse(?:if)?|mpty|nd(?:declare|for(?:each)?|if|switch|while)|val|x(?:it|tends)))|(?:f(?:inal|or(?:each)?|unction))|(?:g(?:lobal|oto))|(?:i(?:f|mplements|n(?:clude(?:_once)?|st(?:anceof|eadof)|terface)|sset))|(?:n(?:amespace|ew))|(?:p(?:r(?:i(?:nt|vate)|otected)|ublic))|(?:re(?:quire(?:_once)?|turn))|(?:s(?:tatic|elf|witch))|(?:t(?:hrow|r(?:ait|y)))|(?:u(?:nset|se))|(?:__halt_compiler|break|list|(?:x)?or|var|while))\b';
+    const X_TAG_OPEN = '^(<\?(?:php|=)?)';
+
+    const X_TAG_CLOSE = '^(\?>)';
+
+    const X_KEYWORDS = '^((?:a(?:bstract|nd|rray|s))|(?:c(?:a(?:llable|se|tch)|l(?:ass|one)|on(?:st|tinue)))|(?:d(?:e(?:clare|fault)|ie|o))|(?:e(?:cho|lse(?:if)?|mpty|nd(?:declare|for(?:each)?|if|switch|while)|val|x(?:it|tends)))|(?:f(?:inal|or(?:each)?|unction))|(?:g(?:lobal|oto))|(?:i(?:f|mplements|n(?:clude(?:_once)?|st(?:anceof|eadof)|terface)|sset))|(?:n(?:amespace|ew))|(?:p(?:r(?:i(?:nt|vate)|otected)|ublic))|(?:re(?:quire(?:_once)?|turn))|(?:s(?:tatic|elf|witch))|(?:t(?:hrow|r(?:ait|y)))|(?:u(?:nset|se))|(?:__halt_compiler|break|list|(?:x)?or|var|while))\b';
 
     const X_PUNCTUATIONS = '^([\[\]{}()<>=|&.,:;!/*+-]+)';
 
@@ -41,6 +45,8 @@ class PHP implements TokenizerInterface
 
     const RX = [
         'whitespace'  => self::X_WHITESPACE,
+        'tag_open'    => self::X_TAG_OPEN,
+        'tag_close'   => self::X_TAG_CLOSE,
         'keywords'    => self::X_KEYWORDS,
         'function'    => self::X_FUNCTIONS,
         'variable'    => self::X_VARIABLE,
@@ -53,9 +59,31 @@ class PHP implements TokenizerInterface
         'punctuation' => self::X_PUNCTUATIONS,
     ];
 
+    /** @var string Current context (html, php) */
+    private $context = 'html';
+
     private function token($type, $match)
     {
         switch ($type) {
+            case 'whitespace':
+                return [
+                    'match'  => $match[0],
+                    'tokens' => [['type' => self::TOKEN_SPACE, 'value' => $match[0]]],
+                ];
+            case 'tag_open':
+                $this->context = 'php';
+
+                return [
+                    'match'  => $match[1],
+                    'tokens' => [['type' => self::TOKEN_KEY, 'value' => $match[1]]]
+                ];
+            case 'tag_close':
+                $this->context = 'html';
+
+                return [
+                    'match'  => $match[1],
+                    'tokens' => [['type' => self::TOKEN_KEY, 'value' => $match[1]]]
+                ];
             case 'keywords':
                 return [
                     'match' => $match[1],
@@ -222,16 +250,38 @@ class PHP implements TokenizerInterface
                     'match' => $match[1],
                     'tokens' => [['type' => self::TOKEN_COMMENT, 'value' => $match[1]]]
                 ];
-            case 'whitespace':
-                return [
-                    'match' => $match[0],
-                    'tokens' => [['type'  => self::TOKEN_SPACE, 'value' => $match[0]]],
-                ];
         }
 
         return [
             'match' => $match[0],
             'tokens' => [['type' => 'unknown', 'value' => $match[0]]]
+        ];
+    }
+
+    /**
+     * Extract no php parts
+     *
+     * @param string $str
+     *
+     * @return array
+     */
+    private function extractOtherContext($str)
+    {
+        $open = strpos($str, '<?');
+
+        if ($open === false) {
+            return ['match' => $str, 'tokens' => [['type' => 'unknown', 'value' => $str]]];
+        }
+
+        if ($open === 0) {
+            return ['match' => '', 'tokens' => []];
+        }
+
+        $value = substr($str, 0, $open);
+
+        return [
+            'match' => $value,
+            'tokens' => [['type' => 'unknown', 'value' => $value]]
         ];
     }
 
@@ -246,6 +296,18 @@ class PHP implements TokenizerInterface
         $rx = self::RX;
 
         while ($item = current($rx)) {
+            if ($this->context !== 'php') {
+                $token = $this->extractOtherContext($str);
+
+                $str = substr($str, strlen($token['match']));
+
+                $tokens = array_merge($tokens, $token['tokens']);
+
+                if (empty($str)) {
+                    break;
+                }
+            }
+
             $type = key($rx);
 
             if (preg_match('~' . $item . '~', $str, $match)) {
