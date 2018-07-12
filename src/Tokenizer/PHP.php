@@ -23,40 +23,43 @@ class PHP implements TokenizerInterface
 
     const X_TAG_CLOSE = '^(\?>)';
 
-    const X_KEYWORDS = '^((?:a(?:bstract|nd|rray|s))|(?:c(?:a(?:llable|se|tch)|l(?:ass|one)|on(?:st|tinue)))|(?:d(?:e(?:clare|fault)|ie|o))|(?:e(?:cho|lse(?:if)?|mpty|nd(?:declare|for(?:each)?|if|switch|while)|val|x(?:it|tends)))|(?:f(?:inal|or(?:each)?|unction))|(?:g(?:lobal|oto))|(?:i(?:f|mplements|n(?:clude(?:_once)?|st(?:anceof|eadof)|terface)|sset))|(?:n(?:amespace|ew))|(?:p(?:r(?:i(?:nt|vate)|otected)|ublic))|(?:re(?:quire(?:_once)?|turn))|(?:s(?:tatic|elf|witch))|(?:t(?:hrow|r(?:ait|y)))|(?:u(?:nset|se))|(?:__halt_compiler|break|list|(?:x)?or|var|while))\b';
+    const X_KEYWORDS = '^((?:a(?:bstract|nd|rray|s))|(?:c(?:a(?:llable|se|tch)|l(?:ass|one)|on(?:st|tinue)))|(?:d(?:e(?:clare|fault)|ie|o))|(?:e(?:cho|lse(?:if)?|mpty|nd(?:declare|for(?:each)?|if|switch|while)|val|x(?:it|tends)))|(?:f(?:inal|or(?:each)?|alse|unction))|(?:g(?:lobal|oto))|(?:i(?:f|mplements|n(?:clude(?:_once)?|st(?:anceof|eadof)|terface)|ull|sset))|(?:n(?:amespace|ew))|(?:p(?:r(?:i(?:nt|vate)|otected)|ublic))|(?:re(?:quire(?:_once)?|turn))|(?:s(?:tatic|elf|witch))|(?:t(?:hrow|r(?:ait|ue|y)))|(?:u(?:nset|se))|(?:__halt_compiler|break|list|(?:x)?or|var|while))\b';
 
     const X_PUNCTUATIONS = '^([\[\]{}()<>=|&.,:;!/*+-]+)';
 
-    const X_FUNCTIONS = '^((' . self::_x_identifier . '\\\\)|(->|::))?' . self::_x_words . self::_x_whitespaces . '?\(';
+    const X_FUNCTIONS = '^(' . self::_x_identifier . '\\\\)?' . self::_x_words . self::_x_whitespaces . '?\(';
+
+    const X_METHOD_CALL = '^(->|::)' . self::_x_whitespaces . '?' . self::_x_words . self::_x_whitespaces . '?\(';
 
     const X_CLASSES = '^' . self::_x_identifier;
 
     const X_CONST = '^(__(?:CLASS|FUNCTION|FILE|DIR|NAMESPACE|METHOD|TRAIT|LINE)__|(INF|NAN|SOMAXCONN|STDIN|STDOUT|STDERR)|(?:(?:AF|ARRAY|ASSERT|CAL|CASE|CHAR|CONNECTION|COUNT|CREDITS|CRYPT|CURL(?:E|AUTH|FTP|METHOD|SSL|GSSAPI|HEADER|INFO|M|OPT|MSG|PAUSE|PIPE|PROTO|PROXY|SHOPT|SSH|SSLOPT|USE|VERSION)*|DATE|DEBUG|DEFAULT|DIRECTORY|DNS|DOM|DOMSTRING|E|ENT|EXTR|FILE|FILTER|FNM|FORCE|GD|GLOB|HASH|HTML|ICONV|IMAGETYPE|IMG|INFO|INI|INPUT|IP|IPPROTO|IPV6|JSON|LC|LIBXML|LOCK|LOG|M|MB|MCAST|MCRYPT|MHASH|MSG|OPENSSL|PASSWORD|PATH|PATHINFO|PCRE|PEAR|PHP|PKCS7|PNG|PREG|PSFS|SCANDIR|SEEK|SO|SOCK|SOCKET|SOL|SORT|STR|STREAM|SUNFUNCS|T|TCP|TOKEN|UPLOAD|X509|XML|ZEND|ZLIB?)_\w+))';
 
-    const X_VARIABLE = '^(\$' . self::_x_words . '|(->|::)' . self::_x_words . ')';
+    const X_VARIABLE = '^(\$' . self::_x_words . '|(?:(->|::)' . self::_x_whitespaces . '?)' . self::_x_words . ')';
 
     const X_WORDS = '^' . self::_x_words;
 
     const X_NUMBER = '^(\d+(?:\.\d+)?)';
 
-    const X_STRING = '^(?:(["\'])[\W\w]*|(<<<\s*(?P<here>[a-zA-Z]+)(?:\r\n|\r|\n)?)([\W\w]*)((?:\r\n|\r|\n)?(?P=here);))';
+    const X_STRING = '^(?:(["\'])[\W\w]*|(<<<\s*(?P<here>[a-zA-Z]+)(?:\r\n|\r|\n)?)([\W\w]*)(((?:\r\n|\r|\n)?(?P=here));))';
 
     const X_COMMENT = '^(//[^\n\r]+|(/[*])[\w\W]+)';
 
     const RX = [
-        'whitespace'  => self::X_WHITESPACE,
-        'tag_open'    => self::X_TAG_OPEN,
-        'tag_close'   => self::X_TAG_CLOSE,
-        'keywords'    => self::X_KEYWORDS,
-        'function'    => self::X_FUNCTIONS,
-        'variable'    => self::X_VARIABLE,
-        'number'      => self::X_NUMBER,
-        'string'      => self::X_STRING,
-        'const'       => self::X_CONST,
-        'classes'     => self::X_CLASSES,
-        'comment'     => self::X_COMMENT,
-        'words'       => self::X_WORDS,
-        'punctuation' => self::X_PUNCTUATIONS,
+        'whitespace'  => '~' . self::X_WHITESPACE . '~',
+        'tag_open'    => '~' . self::X_TAG_OPEN . '~',
+        'tag_close'   => '~' . self::X_TAG_CLOSE . '~',
+        'keywords'    => '~' . self::X_KEYWORDS . '~i',
+        'function'    => '~' . self::X_FUNCTIONS . '~',
+        'method'      => '~' . self::X_METHOD_CALL . '~',
+        'variable'    => '~' . self::X_VARIABLE . '~',
+        'number'      => '~' . self::X_NUMBER . '~',
+        'string'      => '~' . self::X_STRING . '~',
+        'const'       => '~' . self::X_CONST . '~',
+        'classes'     => '~' . self::X_CLASSES . '~',
+        'comment'     => '~' . self::X_COMMENT . '~',
+        'words'       => '~' . self::X_WORDS . '~',
+        'punctuation' => '~' . self::X_PUNCTUATIONS . '~',
     ];
 
     /** @var string Current context (html, php) */
@@ -90,24 +93,67 @@ class PHP implements TokenizerInterface
                     'tokens' => [['type'  => self::TOKEN_KEY, 'value' => $match[1]]]
                 ];
             case 'function':
-                $matched = $match[1] . $match[7];
+                $matched = $match[0];
 
-                if ($match[2]) {
+                if ($match[1]) {
                     $tokens[] = [
                         'type' => self::TOKEN_NAMESPACE,
-                        'value' => $match[2]
+                        'value' => $match[1]
                     ];
                 }
-                if ($match[6]) {
+
+                $tokens[] = [
+                    'type' => self::TOKEN_WORD,
+                    'value' => $match[5]
+                ];
+
+                if (!empty($match[6])) {
                     $tokens[] = [
-                        'type' => self::TOKEN_PUNCTUATION,
+                        'type' => self::TOKEN_SPACE,
                         'value' => $match[6]
                     ];
                 }
 
                 $tokens[] = [
+                    'type' => self::TOKEN_PUNCTUATION,
+                    'value' => '('
+                ];
+
+                return [
+                    'match' => $matched,
+                    'tokens' => $tokens
+                ];
+            case 'method':
+                $matched = $match[0];
+
+                if ($match[1]) {
+                    $tokens[] = [
+                        'type' => self::TOKEN_PUNCTUATION,
+                        'value' => $match[1]
+                    ];
+                }
+                if ($match[2]) {
+                    $tokens[] = [
+                        'type' => self::TOKEN_SPACE,
+                        'value' => $match[2]
+                    ];
+                }
+
+                $tokens[] = [
                     'type' => self::TOKEN_FUNCTION,
-                    'value' => $match[7]
+                    'value' => $match[3]
+                ];
+
+                if (!empty($match[4])) {
+                    $tokens[] = [
+                        'type' => self::TOKEN_SPACE,
+                        'value' => $match[4]
+                    ];
+                }
+
+                $tokens[] = [
+                    'type' => self::TOKEN_PUNCTUATION,
+                    'value' => '('
                 ];
 
                 return [
@@ -115,21 +161,10 @@ class PHP implements TokenizerInterface
                     'tokens' => $tokens
                 ];
             case 'const':
-                if (!empty($match[2])) {
-                    $tokens[] = [
-                        'type' => self::TOKEN_PUNCTUATION,
-                        'value' => $match[2]
-                    ];
-                    $tokens[] = [
-                        'type' => self::TOKEN_VAR,
-                        'value' => $match[3]
-                    ];
-                } else {
-                    $tokens[] = [
-                        'type' => self::TOKEN_VAR,
-                        'value' => $match[1]
-                    ];
-                }
+                $tokens[] = [
+                    'type' => self::TOKEN_VAR,
+                    'value' => $match[1]
+                ];
 
                 return [
                     'match' => $match[1],
@@ -156,9 +191,15 @@ class PHP implements TokenizerInterface
                         'type'  => self::TOKEN_PUNCTUATION,
                         'value' => $match[3]
                     ];
+                    if(!empty($match[4])){
+                        $tokens[] = [
+                            'type'  => self::TOKEN_SPACE,
+                            'value' => $match[4]
+                        ];
+                    }
                     $tokens[] = [
                         'type'  => self::TOKEN_VAR,
-                        'value' => $match[4]
+                        'value' => $match[5]
                     ];
                 } else {
                     $tokens[] = [
@@ -183,7 +224,7 @@ class PHP implements TokenizerInterface
                     $quote = $match['here'] . ';';
 
                     $tokens[] = [
-                        'type'  => self::TOKEN_NAMESPACE,
+                        'type'  => self::TOKEN_WORD,
                         'value' => $match[2]
                     ];
                     $matched = $match[2];
@@ -224,15 +265,19 @@ class PHP implements TokenizerInterface
 
                 if(isset($match[5])){
                     $tokens[] = [
-                        'type'  => self::TOKEN_NAMESPACE,
-                        'value' => $match[5]
+                        'type'  => self::TOKEN_WORD,
+                        'value' => $match[6]
+                    ];
+                    $tokens[] = [
+                        'type'  => self::TOKEN_PUNCTUATION,
+                        'value' => ';'
                     ];
                     $matched .= $match[5];
                 }
 
                 return [
-                    'match' => $matched,
-                    'tokens' => $tokens
+                    'match'  => $matched,
+                    'tokens' => $tokens,
                 ];
             case 'comment':
                 if (!empty($match[2])) {
@@ -241,14 +286,14 @@ class PHP implements TokenizerInterface
                     $value = substr($match[0], 0, $stop + 2);
 
                     return [
-                        'match' => $value,
-                        'tokens' => [['type' => self::TOKEN_BLOCK_COMMENT, 'value' => $value]]
+                        'match'  => $value,
+                        'tokens' => [['type' => self::TOKEN_BLOCK_COMMENT, 'value' => $value]],
                     ];
                 }
 
                 return [
-                    'match' => $match[1],
-                    'tokens' => [['type' => self::TOKEN_COMMENT, 'value' => $match[1]]]
+                    'match'  => $match[1],
+                    'tokens' => [['type' => self::TOKEN_COMMENT, 'value' => $match[1]]],
                 ];
         }
 
@@ -310,7 +355,7 @@ class PHP implements TokenizerInterface
 
             $type = key($rx);
 
-            if (preg_match('~' . $item . '~', $str, $match)) {
+            if (preg_match($item, $str, $match)) {
                 $token = $this->token($type, $match);
 
                 $str = substr($str, strlen($token['match']));

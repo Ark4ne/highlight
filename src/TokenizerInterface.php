@@ -10,6 +10,7 @@ namespace Highlight;
 interface TokenizerInterface
 {
     const TOKEN_SPACE         = 'whitespace';
+    const TOKEN_WORD          = 'word';
     const TOKEN_PUNCTUATION   = 'punctuation';
     const TOKEN_KEY           = 'keyword';
     const TOKEN_NAMESPACE     = 'namespace';
