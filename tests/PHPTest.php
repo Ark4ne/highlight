@@ -112,8 +112,8 @@ EOF;'                  => [
                 [Token::TOKEN_SPACE, " "],
                 [Token::TOKEN_PUNCTUATION, "="],
                 [Token::TOKEN_SPACE, " "],
-                [Token::TOKEN_WORD, "<<<EOF" . PHP_EOL],
-                [Token::TOKEN_STRING, "Heredoc string" . PHP_EOL],
+                [Token::TOKEN_WORD, "<<<EOF" . "\n"],
+                [Token::TOKEN_STRING, "Heredoc string" . "\n"],
                 [Token::TOKEN_WORD, "EOF"],
                 [Token::TOKEN_PUNCTUATION, ";"],
 
@@ -161,7 +161,7 @@ EOF;'                  => [
             '// a is true.
 $a = true;'      => [
                 [Token::TOKEN_COMMENT, '// a is true.'],
-                [Token::TOKEN_SPACE, PHP_EOL],
+                [Token::TOKEN_SPACE, "\n"],
                 [Token::TOKEN_VAR, '$a'],
                 [Token::TOKEN_SPACE, " "],
                 [Token::TOKEN_PUNCTUATION, "="],
@@ -174,7 +174,7 @@ $a = true;'      => [
  * Dob Block
  */' => [
                 [Token::TOKEN_BLOCK_COMMENT, '/* Block Comment */'],
-                [Token::TOKEN_SPACE, PHP_EOL],
+                [Token::TOKEN_SPACE, "\n"],
                 [Token::TOKEN_BLOCK_COMMENT, '/**
  * Dob Block
  */'],
