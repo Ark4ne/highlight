@@ -50,7 +50,7 @@ class SQL implements TokenizerInterface
 
     /*private*/ const _x_str = '(?:\'[\w\W]*\'|"[\w\W]*")';
 
-    /*private*/ const _x_number = '\d+(?:\.\d+)';
+    /*private*/ const _x_number = '\d+(?:\.\d+)?';
 
     const X_VALUABLE = '^((?:' . self::_x_number . '|' . self::_x_str . '|' . self::_x_bind . '))';
 
