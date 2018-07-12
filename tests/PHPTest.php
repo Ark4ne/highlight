@@ -3,7 +3,7 @@
 namespace Test;
 
 use Highlight\Tokenizer\PHP;
-use Highlight\TokenizerInterface;
+use Highlight\TokenizerInterface as Token;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -15,415 +15,182 @@ class PHPTest extends TestCase
 {
     public function dataTestSimple(){
         $datas = [
-            '$a = 123;' => [
-                [
-                    'type' => TokenizerInterface::TOKEN_VAR,
-                    'value' => '$a'
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => "="
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_INT,
-                    'value' => "123"
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => ";"
-                ]
+            '$a = 123;'         => [
+                [Token::TOKEN_VAR, '$a'],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_PUNCTUATION, "="],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_INT, "123"],
+                [Token::TOKEN_PUNCTUATION, ";"],
             ],
-            '$a = "ab\\"c";' => [
-                [
-                    'type' => TokenizerInterface::TOKEN_VAR,
-                    'value' => '$a'
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => "="
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_STRING,
-                    'value' => '"ab\"c"'
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => ";"
-                ]
+            '$a = "ab\\"c";'    => [
+                [Token::TOKEN_VAR, '$a'],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_PUNCTUATION, "="],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_STRING, '"ab\"c"'],
+                [Token::TOKEN_PUNCTUATION, ";"],
+
             ],
             '$a = \'ab\\\'c\';' => [
-                [
-                    'type' => TokenizerInterface::TOKEN_VAR,
-                    'value' => '$a'
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => "="
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_STRING,
-                    'value' => "'ab\'c'"
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => ";"
-                ]
+                [Token::TOKEN_VAR, '$a'],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_PUNCTUATION, "="],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_STRING, "'ab\'c'"],
+                [Token::TOKEN_PUNCTUATION, ";"],
+
             ],
-            '$a = [];' => [
-                [
-                    'type' => TokenizerInterface::TOKEN_VAR,
-                    'value' => '$a'
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => "="
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => "[];"
-                ]
+            '$a = [];'          => [
+                [Token::TOKEN_VAR, '$a'],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_PUNCTUATION, "="],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_PUNCTUATION, "[];"],
+
             ],
-            '$a ();' => [
-                [
-                    'type' => TokenizerInterface::TOKEN_VAR,
-                    'value' => '$a'
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => "();"
-                ]
+            '$a ();'            => [
+                [Token::TOKEN_VAR, '$a'],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_PUNCTUATION, "();"],
+
             ],
-            'a ();' => [
-                [
-                    'type' => TokenizerInterface::TOKEN_WORD,
-                    'value' => 'a'
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => "("
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => ");"
-                ]
+            'a ();'             => [
+                [Token::TOKEN_WORD, 'a'],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_PUNCTUATION, "("],
+                [Token::TOKEN_PUNCTUATION, ");"],
+
             ],
-            'Abc\a ();' => [
-                [
-                    'type' => TokenizerInterface::TOKEN_NAMESPACE,
-                    'value' => 'Abc\\'
-                ], [
-                    'type' => TokenizerInterface::TOKEN_WORD,
-                    'value' => 'a'
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => "("
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => ");"
-                ]
+            'Abc\a ();'         => [
+                [Token::TOKEN_NAMESPACE, 'Abc\\'],
+                [Token::TOKEN_WORD, 'a'],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_PUNCTUATION, "("],
+                [Token::TOKEN_PUNCTUATION, ");"],
+
             ],
-            '$a -> a ();' => [
-                [
-                    'type' => TokenizerInterface::TOKEN_VAR,
-                    'value' => '$a'
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => "->"
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_FUNCTION,
-                    'value' => "a"
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => "("
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => ");"
-                ]
+            '$a -> a ();'       => [
+                [Token::TOKEN_VAR, '$a'],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_PUNCTUATION, "->"],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_FUNCTION, "a"],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_PUNCTUATION, "("],
+                [Token::TOKEN_PUNCTUATION, ");"],
+
             ],
-            '$a = new Abc\a;' => [
-                [
-                    'type' => TokenizerInterface::TOKEN_VAR,
-                    'value' => '$a'
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => "="
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_KEY,
-                    'value' => "new"
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_NAMESPACE,
-                    'value' => "Abc\\a"
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => ";"
-                ]
+            '$a = new Abc\a;'   => [
+                [Token::TOKEN_VAR, '$a'],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_PUNCTUATION, "="],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_KEY, "new"],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_NAMESPACE, "Abc\\a"],
+                [Token::TOKEN_PUNCTUATION, ";"],
+
             ],
             '$a = new Abc\a();' => [
-                [
-                    'type' => TokenizerInterface::TOKEN_VAR,
-                    'value' => '$a'
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => "="
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_KEY,
-                    'value' => "new"
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_NAMESPACE,
-                    'value' => "Abc\\"
-                ], [
-                    'type' => TokenizerInterface::TOKEN_WORD,
-                    'value' => "a"
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => "("
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => ");"
-                ]
+                [Token::TOKEN_VAR, '$a'],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_PUNCTUATION, "="],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_KEY, "new"],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_NAMESPACE, "Abc\\"],
+                [Token::TOKEN_WORD, "a"],
+                [Token::TOKEN_PUNCTUATION, "("],
+                [Token::TOKEN_PUNCTUATION, ");"],
+
             ],
             '$a = <<<EOF
 Heredoc string
-EOF;' => [
-                [
-                    'type'  => TokenizerInterface::TOKEN_VAR,
-                    'value' => '$a',
-                ], [
-                    'type'  => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " ",
-                ], [
-                    'type'  => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => "=",
-                ], [
-                    'type'  => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " ",
-                ], [
-                    'type'  => TokenizerInterface::TOKEN_WORD,
-                    'value' => "<<<EOF" . PHP_EOL,
-                ], [
-                    'type'  => TokenizerInterface::TOKEN_STRING,
-                    'value' => "Heredoc string" . PHP_EOL,
-                ], [
-                    'type'  => TokenizerInterface::TOKEN_WORD,
-                    'value' => "EOF",
-                ], [
-                    'type'  => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => ";",
-                ],
+EOF;'                  => [
+                [Token::TOKEN_VAR, '$a'],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_PUNCTUATION, "="],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_WORD, "<<<EOF" . PHP_EOL],
+                [Token::TOKEN_STRING, "Heredoc string" . PHP_EOL],
+                [Token::TOKEN_WORD, "EOF"],
+                [Token::TOKEN_PUNCTUATION, ";"],
+
             ],
             '$a -> b;' => [
-                [
-                    'type' => TokenizerInterface::TOKEN_VAR,
-                    'value' => '$a'
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => "->"
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_VAR,
-                    'value' => "b"
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => ";"
-                ]
+                [Token::TOKEN_VAR, '$a'],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_PUNCTUATION, "->"],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_VAR, "b"],
+                [Token::TOKEN_PUNCTUATION, ";"],
             ],
             '$a = __DIR__ . __FILE__;' => [
-                [
-                    'type' => TokenizerInterface::TOKEN_VAR,
-                    'value' => '$a'
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => "="
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_VAR,
-                    'value' => "__DIR__"
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => "."
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_VAR,
-                    'value' => "__FILE__"
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => ";"
-                ]
+                [Token::TOKEN_VAR, '$a'],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_PUNCTUATION, "="],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_VAR, "__DIR__"],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_PUNCTUATION, "."],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_VAR, "__FILE__"],
+                [Token::TOKEN_PUNCTUATION, ";"],
             ],
-            '$a = A\B::$c;' => [
-                [
-                    'type' => TokenizerInterface::TOKEN_VAR,
-                    'value' => '$a'
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => "="
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_NAMESPACE,
-                    'value' => "A\B"
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => "::"
-                ], [
-                    'type' => TokenizerInterface::TOKEN_VAR,
-                    'value' => '$c'
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => ";"
-                ]
+            '$a = A\B::$c;'            => [
+                [Token::TOKEN_VAR, '$a'],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_PUNCTUATION, "="],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_NAMESPACE, "A\B"],
+                [Token::TOKEN_PUNCTUATION, "::"],
+                [Token::TOKEN_VAR, '$c'],
+                [Token::TOKEN_PUNCTUATION, ";"],
             ],
             '$a = A\B::C;' => [
-                [
-                    'type' => TokenizerInterface::TOKEN_VAR,
-                    'value' => '$a'
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => "="
-                ], [
-                    'type' => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " "
-                ], [
-                    'type' => TokenizerInterface::TOKEN_NAMESPACE,
-                    'value' => "A\B"
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => "::"
-                ], [
-                    'type' => TokenizerInterface::TOKEN_VAR,
-                    'value' => 'C'
-                ], [
-                    'type' => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => ";"
-                ]
+                [Token::TOKEN_VAR, '$a'],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_PUNCTUATION, "="],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_NAMESPACE, "A\B"],
+                [Token::TOKEN_PUNCTUATION, "::"],
+                [Token::TOKEN_VAR, 'C'],
+                [Token::TOKEN_PUNCTUATION, ";"],
             ],
             '// a is true.
-$a = true;' => [
-                [
-                    'type'  => TokenizerInterface::TOKEN_COMMENT,
-                    'value' => '// a is true.',
-                ], [
-                    'type'  => TokenizerInterface::TOKEN_SPACE,
-                    'value' => PHP_EOL,
-                ], [
-                    'type'  => TokenizerInterface::TOKEN_VAR,
-                    'value' => '$a',
-                ], [
-                    'type'  => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " ",
-                ], [
-                    'type'  => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => "=",
-                ], [
-                    'type'  => TokenizerInterface::TOKEN_SPACE,
-                    'value' => " ",
-                ], [
-                    'type'  => TokenizerInterface::TOKEN_KEY,
-                    'value' => "true",
-                ], [
-                    'type'  => TokenizerInterface::TOKEN_PUNCTUATION,
-                    'value' => ";",
-                ],
+$a = true;'      => [
+                [Token::TOKEN_COMMENT, '// a is true.'],
+                [Token::TOKEN_SPACE, PHP_EOL],
+                [Token::TOKEN_VAR, '$a'],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_PUNCTUATION, "="],
+                [Token::TOKEN_SPACE, " "],
+                [Token::TOKEN_KEY, "true"],
+                [Token::TOKEN_PUNCTUATION, ";"],
             ],
             '/* Block Comment */
 /**
  * Dob Block
  */' => [
-                [
-                    'type'  => TokenizerInterface::TOKEN_BLOCK_COMMENT,
-                    'value' => '/* Block Comment */',
-                ], [
-                    'type'  => TokenizerInterface::TOKEN_SPACE,
-                    'value' => PHP_EOL,
-                ], [
-                    'type'  => TokenizerInterface::TOKEN_BLOCK_COMMENT,
-                    'value' => '/**
+                [Token::TOKEN_BLOCK_COMMENT, '/* Block Comment */'],
+                [Token::TOKEN_SPACE, PHP_EOL],
+                [Token::TOKEN_BLOCK_COMMENT, '/**
  * Dob Block
- */',
-                ],
+ */'],
             ],
             '~~' => [
-                [
-                    'type'  => 'unknown',
-                    'value' => '~',
-                ],
-                [
-                    'type'  => 'unknown',
-                    'value' => '~',
-                ],
+                ['unknown', '~'],
+                ['unknown', '~'],
             ],
         ];
 
         foreach ($datas as $k => $v) {
-            $datas[$k] = [$k, $v];
+            $tokens = [];
+            foreach ($v as $tok) {
+                $tokens[] = ['type' => $tok[0], 'value' => $tok[1]];
+            }
+            $datas[$k] = [$k, $tokens];
         }
 
         return $datas;
@@ -440,20 +207,20 @@ $a = true;' => [
         $this->assertTokenize('<?php ' . $str . ' ?>', array_merge(
             [
                 [
-                    'type'  => TokenizerInterface::TOKEN_KEY,
+                    'type'  => Token::TOKEN_KEY,
                     'value' => '<?php',
                 ], [
-                    'type'  => TokenizerInterface::TOKEN_SPACE,
+                    'type'  => Token::TOKEN_SPACE,
                     'value' => ' ',
                 ],
             ],
             $tokens,
             [
                 [
-                    'type'  => TokenizerInterface::TOKEN_SPACE,
+                    'type'  => Token::TOKEN_SPACE,
                     'value' => ' ',
                 ], [
-                    'type'  => TokenizerInterface::TOKEN_KEY,
+                    'type'  => Token::TOKEN_KEY,
                     'value' => '?>',
                 ],
             ]
@@ -472,31 +239,31 @@ PHP;
                 'value' => '<div attr="abc"><span>'
             ],
             [
-                'type' => TokenizerInterface::TOKEN_KEY,
+                'type' => Token::TOKEN_KEY,
                 'value' => '<?='
             ],
             [
-                'type' => TokenizerInterface::TOKEN_SPACE,
+                'type' => Token::TOKEN_SPACE,
                 'value' => ' '
             ],
             [
-                'type' => TokenizerInterface::TOKEN_VAR,
+                'type' => Token::TOKEN_VAR,
                 'value' => '$this'
             ],
             [
-                'type' => TokenizerInterface::TOKEN_PUNCTUATION,
+                'type' => Token::TOKEN_PUNCTUATION,
                 'value' => '->'
             ],
             [
-                'type' => TokenizerInterface::TOKEN_VAR,
+                'type' => Token::TOKEN_VAR,
                 'value' => 'prop'
             ],
             [
-                'type' => TokenizerInterface::TOKEN_SPACE,
+                'type' => Token::TOKEN_SPACE,
                 'value' => ' '
             ],
             [
-                'type' => TokenizerInterface::TOKEN_KEY,
+                'type' => Token::TOKEN_KEY,
                 'value' => '?>'
             ],
             [
