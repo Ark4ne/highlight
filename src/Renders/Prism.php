@@ -12,8 +12,15 @@ use Highlight\TokenizerInterface;
  */
 class Prism implements RenderInterface
 {
-
-    public function render(array $tokens)
+    /**
+     * Render an list of tokens
+     *
+     * @param array $tokens
+     * @param array $options
+     *
+     * @return string
+     */
+    public function render(array $tokens, array $options = [])
     {
         $str = '';
 
@@ -26,6 +33,9 @@ class Prism implements RenderInterface
                 case TokenizerInterface::TOKEN_STRING:
                 case TokenizerInterface::TOKEN_INT:
                 case TokenizerInterface::TOKEN_PUNCTUATION:
+                case TokenizerInterface::TOKEN_NAMESPACE:
+                case TokenizerInterface::TOKEN_COMMENT:
+                case TokenizerInterface::TOKEN_BLOCK_COMMENT:
                     $str .= '<code class="token ' . $token['type'] . '">' . $token['value'] . '</code>';
                     break;
                 case TokenizerInterface::TOKEN_SPACE:

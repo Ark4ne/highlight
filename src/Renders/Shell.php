@@ -30,7 +30,7 @@ class Shell implements RenderInterface
     const C_GRAY         = "0;37";
     const C_GRAY_LIGHT   = "1;37";
 
-    public function render(array $tokens)
+    public function render(array $tokens, array $options = [])
     {
         $str = '';
 

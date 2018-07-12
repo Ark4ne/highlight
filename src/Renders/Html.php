@@ -32,13 +32,21 @@ class Html implements RenderInterface
         self::$styles = array_merge(self::$styles, $colors);
     }
 
+    /**
+     * Render an list of tokens
+     *
+     * @param array $tokens
+     * @param array $options
+     *
+     * @return string
+     */
     public function render(array $tokens, array $options = [])
     {
         $styles = array_merge(self::$styles, isset($options['styles']) ? $options['styles'] : []);
 
         $html = '';
 
-        if(empty($options['noStyleTag'])){
+        if(empty($options['inlineStyle'])){
             $ctx = uniqid("hl");
             $html = "<style rel='stylesheet'>";
             foreach ($styles as $key => $style) {
@@ -55,7 +63,7 @@ class Html implements RenderInterface
             if (!empty($styles[$token['type']])) {
                 $parts = [];
                 foreach (explode("\n", str_replace(["\r\n", "\r"], "\n", $token['value'])) as $w) {
-                    if (empty($options['noStyleTag'])) {
+                    if (isset($ctx)) {
                         $parts[] = '<code class="' . $ctx . $token['type'] . '">' . $w . '</code>';
                     } else {
                         $parts[] = '<code style="' . $styles[$token['type']] . '">' . $w . '</code>';
@@ -74,7 +82,7 @@ class Html implements RenderInterface
 
         if (!empty($options['withLineNumber'])) {
             foreach ($lines as $idx => $line) {
-                if (empty($options['noStyleTag'])) {
+                if (isset($ctx)) {
                     $lines[$idx] = '<code class="' . $ctx . 'line_number">' . ($idx+1) . '</code>' . $line;
                 } else {
                     $lines[$idx] = '<code style="' . $styles['line_number'] . '">' . ($idx+1) . '</code>' . $line;
@@ -83,7 +91,7 @@ class Html implements RenderInterface
         }
 
         if(isset($options['lineSelected'])){
-            if (empty($options['noStyleTag'])) {
+            if (isset($ctx)) {
                 $lines[$options['lineSelected']-1] = '<code class="' . $ctx . 'line_selected">' . $lines[$options['lineSelected']-1] . '</code>';
             } else {
                 $lines[$options['lineSelected']-1] = '<code style="' . $styles['line_selected'] . '">' . $lines[$options['lineSelected']-1] . '</code>';
@@ -94,10 +102,18 @@ class Html implements RenderInterface
             $lines = array_slice($lines, $options['lineOffset'], $options['lineLimit']);
         }
 
-        if (empty($options['noStyleTag'])) {
-            return $html . '<pre class="' . $ctx . 'pre">' . implode("\n", $lines) . '</pre>';
+        if(empty($options['noPre'])){
+            if (isset($ctx)) {
+                return $html . '<pre class="' . $ctx . 'pre">' . implode("\n", $lines) . '</pre>';
+            } else {
+                return $html . '<pre style="' . $styles['pre'] . '">' . implode("\n", $lines) . '</pre>';
+            }
+        }
+
+        if (isset($ctx)) {
+            return $html . implode("\n", $lines) . '</pre>';
         } else {
-            return $html . '<pre style="' . $styles['pre'] . '">' . implode("\n", $lines) . '</pre>';
+            return $html . implode("\n", $lines) . '</pre>';
         }
     }
 }
