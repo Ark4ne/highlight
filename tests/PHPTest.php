@@ -186,11 +186,7 @@ $a = true;'      => [
         ];
 
         foreach ($datas as $k => $v) {
-            $tokens = [];
-            foreach ($v as $tok) {
-                $tokens[] = ['type' => $tok[0], 'value' => $tok[1]];
-            }
-            $datas[$k] = [$k, $tokens];
+            $datas[$k] = [$k, $this->expandTokens($v)];
         }
 
         return $datas;
@@ -229,54 +225,158 @@ $a = true;'      => [
 
     public function testPhpHtml()
     {
-        $src = <<<PHP
-<div attr="abc"><span><?= \$this->prop ?></span></div>
-PHP;
+        $src = '<div attr="abc"><span><?= $this->prop ?></span></div>';
 
         $tokens = [
-            [
-                'type' => 'unknown',
-                'value' => '<div attr="abc"><span>'
-            ],
-            [
-                'type' => Token::TOKEN_KEY,
-                'value' => '<?='
-            ],
-            [
-                'type' => Token::TOKEN_SPACE,
-                'value' => ' '
-            ],
-            [
-                'type' => Token::TOKEN_VAR,
-                'value' => '$this'
-            ],
-            [
-                'type' => Token::TOKEN_PUNCTUATION,
-                'value' => '->'
-            ],
-            [
-                'type' => Token::TOKEN_VAR,
-                'value' => 'prop'
-            ],
-            [
-                'type' => Token::TOKEN_SPACE,
-                'value' => ' '
-            ],
-            [
-                'type' => Token::TOKEN_KEY,
-                'value' => '?>'
-            ],
-            [
-                'type' => 'unknown',
-                'value' => '</span></div>'
-            ],
+            ['unknown', '<div attr="abc"><span>'],
+            [Token::TOKEN_KEY, '<?='],
+            [Token::TOKEN_SPACE, ' '],
+            [Token::TOKEN_VAR, '$this'],
+            [Token::TOKEN_PUNCTUATION, '->'],
+            [Token::TOKEN_VAR, 'prop'],
+            [Token::TOKEN_SPACE, ' '],
+            [Token::TOKEN_KEY, '?>'],
+            ['unknown', '</span></div>'],
         ];
 
-        $this->assertTokenize($src, $tokens);
+        $this->assertTokenize($src, $this->expandTokens($tokens));
+    }
+
+    public function testPhpClass()
+    {
+        $src = '<?php
+
+namespace Abc;
+
+use B;
+
+/**
+ * Class C
+ */
+class C extends A
+{
+    const CC = "CC";
+
+    private static $cc = 0xFF0000;
+
+    protected $b;
+
+    public function __construct(B $b, $opts = [])
+    {
+        parent::__construct($opts);
+
+        $this->b = $b;
+    }
+}';
+
+        $tokens = [
+            [Token::TOKEN_KEY, '<?php'],
+            [Token::TOKEN_SPACE, "\n\n"],
+            [Token::TOKEN_KEY, 'namespace'],
+            [Token::TOKEN_SPACE, ' '],
+            [Token::TOKEN_NAMESPACE, 'Abc'],
+            [Token::TOKEN_PUNCTUATION, ';'],
+            [Token::TOKEN_SPACE, "\n\n"],
+            [Token::TOKEN_KEY, 'use'],
+            [Token::TOKEN_SPACE, ' '],
+            [Token::TOKEN_NAMESPACE, 'B'],
+            [Token::TOKEN_PUNCTUATION, ';'],
+            [Token::TOKEN_SPACE, "\n\n"],
+            [Token::TOKEN_BLOCK_COMMENT, '/**
+ * Class C
+ */'],
+            [Token::TOKEN_SPACE, "\n"],
+            [Token::TOKEN_KEY, 'class'],
+            [Token::TOKEN_SPACE, ' '],
+            [Token::TOKEN_NAMESPACE, 'C'],
+            [Token::TOKEN_SPACE, ' '],
+            [Token::TOKEN_KEY, 'extends'],
+            [Token::TOKEN_SPACE, ' '],
+            [Token::TOKEN_NAMESPACE, 'A'],
+            [Token::TOKEN_SPACE, "\n"],
+            [Token::TOKEN_PUNCTUATION, '{'],
+            [Token::TOKEN_SPACE, "\n    "],
+            [Token::TOKEN_KEY, 'const'],
+            [Token::TOKEN_SPACE, ' '],
+            [Token::TOKEN_VAR, 'CC'],
+            [Token::TOKEN_SPACE, ' '],
+            [Token::TOKEN_PUNCTUATION, '='],
+            [Token::TOKEN_SPACE, ' '],
+            [Token::TOKEN_STRING, '"CC"'],
+            [Token::TOKEN_PUNCTUATION, ';'],
+            [Token::TOKEN_SPACE, "\n\n    "],
+            [Token::TOKEN_KEY, 'private'],
+            [Token::TOKEN_SPACE, ' '],
+            [Token::TOKEN_KEY, 'static'],
+            [Token::TOKEN_SPACE, ' '],
+            [Token::TOKEN_VAR, '$cc'],
+            [Token::TOKEN_SPACE, ' '],
+            [Token::TOKEN_PUNCTUATION, '='],
+            [Token::TOKEN_SPACE, ' '],
+            [Token::TOKEN_INT, '0xFF0000'],
+            [Token::TOKEN_PUNCTUATION, ';'],
+            [Token::TOKEN_SPACE, "\n\n    "],
+            [Token::TOKEN_KEY, 'protected'],
+            [Token::TOKEN_SPACE, ' '],
+            [Token::TOKEN_VAR, '$b'],
+            [Token::TOKEN_PUNCTUATION, ';'],
+            [Token::TOKEN_SPACE, "\n\n    "],
+            [Token::TOKEN_KEY, 'public'],
+            [Token::TOKEN_SPACE, ' '],
+            [Token::TOKEN_KEY, 'function'],
+            [Token::TOKEN_SPACE, ' '],
+            [Token::TOKEN_FUNCTION, '__construct'],
+            [Token::TOKEN_PUNCTUATION, '('],
+            [Token::TOKEN_NAMESPACE, 'B'],
+            [Token::TOKEN_SPACE, ' '],
+            [Token::TOKEN_VAR, '$b'],
+            [Token::TOKEN_PUNCTUATION, ','],
+            [Token::TOKEN_SPACE, ' '],
+            [Token::TOKEN_VAR, '$opts'],
+            [Token::TOKEN_SPACE, ' '],
+            [Token::TOKEN_PUNCTUATION, '='],
+            [Token::TOKEN_SPACE, ' '],
+            [Token::TOKEN_PUNCTUATION, '[])'],
+            [Token::TOKEN_SPACE, "\n    "],
+            [Token::TOKEN_PUNCTUATION, '{'],
+            [Token::TOKEN_SPACE, "\n        "],
+            [Token::TOKEN_KEY, 'parent'],
+            [Token::TOKEN_PUNCTUATION, '::'],
+            [Token::TOKEN_FUNCTION, '__construct'],
+            [Token::TOKEN_PUNCTUATION, '('],
+            [Token::TOKEN_VAR, '$opts'],
+            [Token::TOKEN_PUNCTUATION, ');'],
+            [Token::TOKEN_SPACE, "\n\n        "],
+            [Token::TOKEN_VAR, '$this'],
+            [Token::TOKEN_PUNCTUATION, '->'],
+            [Token::TOKEN_VAR, 'b'],
+            [Token::TOKEN_SPACE, ' '],
+            [Token::TOKEN_PUNCTUATION, '='],
+            [Token::TOKEN_SPACE, ' '],
+            [Token::TOKEN_VAR, '$b'],
+            [Token::TOKEN_PUNCTUATION, ';'],
+            [Token::TOKEN_SPACE, "\n    "],
+            [Token::TOKEN_PUNCTUATION, '}'],
+            [Token::TOKEN_SPACE, "\n"],
+            [Token::TOKEN_PUNCTUATION, '}'],
+        ];
+
+        $this->assertTokenize($src, $this->expandTokens($tokens));
     }
 
     private function assertTokenize($str, $tokens)
     {
         $this->assertEquals($tokens, (new PHP)->tokenize($str));
+    }
+
+    private function expandTokens(array $tokens)
+    {
+        $_ = [];
+
+        foreach ($tokens as $token) {
+            $_[] = ['type' => $token[0], 'value' => $token[1]];
+        }
+
+        return $_;
     }
 }

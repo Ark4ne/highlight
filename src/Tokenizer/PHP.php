@@ -23,13 +23,14 @@ class PHP implements TokenizerInterface
 
     const X_TAG_CLOSE = '^(\?>)';
 
-    const X_KEYWORDS = '^((?:a(?:bstract|nd|rray|s))|(?:c(?:a(?:llable|se|tch)|l(?:ass|one)|on(?:st|tinue)))|(?:d(?:e(?:clare|fault)|ie|o))|(?:e(?:cho|lse(?:if)?|mpty|nd(?:declare|for(?:each)?|if|switch|while)|val|x(?:it|tends)))|(?:f(?:inal|or(?:each)?|alse|unction))|(?:g(?:lobal|oto))|(?:i(?:f|mplements|n(?:clude(?:_once)?|st(?:anceof|eadof)|terface)|ull|sset))|(?:n(?:amespace|ew))|(?:p(?:r(?:i(?:nt|vate)|otected)|ublic))|(?:re(?:quire(?:_once)?|turn))|(?:s(?:tatic|elf|witch))|(?:t(?:hrow|r(?:ait|ue|y)))|(?:u(?:nset|se))|(?:__halt_compiler|break|list|(?:x)?or|var|while))\b';
+    const X_KEYWORDS = '^((?:a(?:bstract|nd|rray|s))|(?:c(?:a(?:llable|se|tch)|l(?:ass|one)|on(?:st|tinue)))|(?:d(?:e(?:clare|fault)|ie|o))|(?:e(?:cho|lse(?:if)?|mpty|nd(?:declare|for(?:each)?|if|switch|while)|val|x(?:it|tends)))|(?:f(?:inal|or(?:each)?|alse|unction))|(?:g(?:lobal|oto))|(?:i(?:f|mplements|n(?:clude(?:_once)?|st(?:anceof|eadof)|terface)|ull|sset))|(?:n(?:amespace|ew))|(?:p(?:r(?:i(?:nt|vate)|otected)|arent|ublic))|(?:re(?:quire(?:_once)?|turn))|(?:s(?:tatic|elf|witch))|(?:t(?:hrow|r(?:ait|ue|y)))|(?:u(?:nset|se))|(?:__halt_compiler|break|list|(?:x)?or|var|while))\b';
 
     const X_PUNCTUATIONS = '^([\[\]{}()<>=|&.,:;!/*+-]+)';
 
     const X_FUNCTIONS = '^(' . self::_x_identifier . '\\\\)?' . self::_x_words . self::_x_whitespaces . '?\(';
 
     const X_METHOD_CALL = '^(->|::)' . self::_x_whitespaces . '?' . self::_x_words . self::_x_whitespaces . '?\(';
+    const X_METHOD_DECLARATION = '^(function)' . self::_x_whitespaces . self::_x_words . self::_x_whitespaces . '?\(';
 
     const X_CLASSES = '^' . self::_x_identifier;
 
@@ -39,7 +40,7 @@ class PHP implements TokenizerInterface
 
     const X_WORDS = '^' . self::_x_words;
 
-    const X_NUMBER = '^(\d+(?:\.\d+)?)';
+    const X_NUMBER = '^(-?\d+(?:[.b]\d+|x[A-Fa-f0-9]+)?)';
 
     const X_STRING = '^(?:(["\'])[\W\w]*|(<<<\s*(?P<here>[a-zA-Z]+)(?:\r\n|\r|\n)?)([\W\w]*)(((?:\r\n|\r|\n)?(?P=here));))';
 
@@ -49,6 +50,7 @@ class PHP implements TokenizerInterface
         'whitespace'  => '~' . self::X_WHITESPACE . '~',
         'tag_open'    => '~' . self::X_TAG_OPEN . '~',
         'tag_close'   => '~' . self::X_TAG_CLOSE . '~',
+        'method_d'    => '~' . self::X_METHOD_DECLARATION . '~',
         'keywords'    => '~' . self::X_KEYWORDS . '~i',
         'function'    => '~' . self::X_FUNCTIONS . '~',
         'method'      => '~' . self::X_METHOD_CALL . '~',
@@ -65,7 +67,7 @@ class PHP implements TokenizerInterface
     /** @var string Current context (html, php) */
     private $context = 'html';
 
-    private function token($type, $match)
+    private function token($type, $match, $previous = null)
     {
         switch ($type) {
             case 'whitespace':
@@ -78,143 +80,181 @@ class PHP implements TokenizerInterface
 
                 return [
                     'match'  => $match[1],
-                    'tokens' => [['type' => self::TOKEN_KEY, 'value' => $match[1]]]
+                    'tokens' => [['type' => self::TOKEN_KEY, 'value' => $match[1]]],
                 ];
             case 'tag_close':
                 $this->context = 'html';
 
                 return [
                     'match'  => $match[1],
-                    'tokens' => [['type' => self::TOKEN_KEY, 'value' => $match[1]]]
+                    'tokens' => [['type' => self::TOKEN_KEY, 'value' => $match[1]]],
                 ];
             case 'keywords':
                 return [
-                    'match' => $match[1],
-                    'tokens' => [['type'  => self::TOKEN_KEY, 'value' => $match[1]]]
+                    'match'  => $match[1],
+                    'tokens' => [['type' => self::TOKEN_KEY, 'value' => $match[1]]],
                 ];
             case 'function':
                 $matched = $match[0];
 
                 if ($match[1]) {
                     $tokens[] = [
-                        'type' => self::TOKEN_NAMESPACE,
-                        'value' => $match[1]
+                        'type'  => self::TOKEN_NAMESPACE,
+                        'value' => $match[1],
                     ];
                 }
 
                 $tokens[] = [
-                    'type' => self::TOKEN_WORD,
-                    'value' => $match[5]
+                    'type'  => self::TOKEN_WORD,
+                    'value' => $match[5],
                 ];
 
                 if (!empty($match[6])) {
                     $tokens[] = [
-                        'type' => self::TOKEN_SPACE,
-                        'value' => $match[6]
+                        'type'  => self::TOKEN_SPACE,
+                        'value' => $match[6],
                     ];
                 }
 
                 $tokens[] = [
-                    'type' => self::TOKEN_PUNCTUATION,
-                    'value' => '('
+                    'type'  => self::TOKEN_PUNCTUATION,
+                    'value' => '(',
                 ];
 
                 return [
-                    'match' => $matched,
-                    'tokens' => $tokens
+                    'match'  => $matched,
+                    'tokens' => $tokens,
                 ];
             case 'method':
                 $matched = $match[0];
 
                 if ($match[1]) {
                     $tokens[] = [
-                        'type' => self::TOKEN_PUNCTUATION,
-                        'value' => $match[1]
+                        'type'  => self::TOKEN_PUNCTUATION,
+                        'value' => $match[1],
                     ];
                 }
                 if ($match[2]) {
                     $tokens[] = [
-                        'type' => self::TOKEN_SPACE,
-                        'value' => $match[2]
+                        'type'  => self::TOKEN_SPACE,
+                        'value' => $match[2],
                     ];
                 }
 
                 $tokens[] = [
-                    'type' => self::TOKEN_FUNCTION,
-                    'value' => $match[3]
+                    'type'  => self::TOKEN_FUNCTION,
+                    'value' => $match[3],
                 ];
 
                 if (!empty($match[4])) {
                     $tokens[] = [
-                        'type' => self::TOKEN_SPACE,
-                        'value' => $match[4]
+                        'type'  => self::TOKEN_SPACE,
+                        'value' => $match[4],
                     ];
                 }
 
                 $tokens[] = [
-                    'type' => self::TOKEN_PUNCTUATION,
-                    'value' => '('
+                    'type'  => self::TOKEN_PUNCTUATION,
+                    'value' => '(',
                 ];
 
                 return [
-                    'match' => $matched,
-                    'tokens' => $tokens
+                    'match'  => $matched,
+                    'tokens' => $tokens,
+                ];
+            case 'method_d':
+                $matched = $match[0];
+
+                $tokens[] = [
+                    'type'  => self::TOKEN_KEY,
+                    'value' => $match[1],
+                ];
+                $tokens[] = [
+                    'type'  => self::TOKEN_SPACE,
+                    'value' => $match[2],
+                ];
+                $tokens[] = [
+                    'type'  => self::TOKEN_FUNCTION,
+                    'value' => $match[3],
+                ];
+
+                if (!empty($match[4])) {
+                    $tokens[] = [
+                        'type'  => self::TOKEN_SPACE,
+                        'value' => $match[4],
+                    ];
+                }
+
+                $tokens[] = [
+                    'type'  => self::TOKEN_PUNCTUATION,
+                    'value' => '(',
+                ];
+
+                return [
+                    'match'  => $matched,
+                    'tokens' => $tokens,
                 ];
             case 'const':
                 $tokens[] = [
-                    'type' => self::TOKEN_VAR,
-                    'value' => $match[1]
+                    'type'  => self::TOKEN_VAR,
+                    'value' => $match[1],
                 ];
 
                 return [
-                    'match' => $match[1],
-                    'tokens' => $tokens
+                    'match'  => $match[1],
+                    'tokens' => $tokens,
                 ];
             case 'punctuation':
                 return [
-                    'match' => $match[1],
-                    'tokens' => [['type'  => self::TOKEN_PUNCTUATION, 'value' => $match[1]]]
+                    'match'  => $match[1],
+                    'tokens' => [['type' => self::TOKEN_PUNCTUATION, 'value' => $match[1]]],
                 ];
             case 'words':
                 return [
-                    'match' => $match[1],
-                    'tokens' => [['type'  => self::TOKEN_NAMESPACE, 'value' => $match[1]]]
+                    'match'  => $match[1],
+                    'tokens' => [['type' => self::TOKEN_NAMESPACE, 'value' => $match[1]]],
                 ];
             case 'classes':
+                if (isset($previous['value']) && $previous['value'] === 'const') {
+                    $type = self::TOKEN_VAR;
+                } else {
+                    $type = self::TOKEN_NAMESPACE;
+                }
+
                 return [
-                    'match' => $match[1],
-                    'tokens' => [['type'  => self::TOKEN_NAMESPACE, 'value' => $match[1]]]
+                    'match'  => $match[1],
+                    'tokens' => [['type' => $type, 'value' => $match[1]]],
                 ];
             case 'variable':
-                if(!empty($match[3])) {
+                if (!empty($match[3])) {
                     $tokens[] = [
                         'type'  => self::TOKEN_PUNCTUATION,
-                        'value' => $match[3]
+                        'value' => $match[3],
                     ];
-                    if(!empty($match[4])){
+                    if (!empty($match[4])) {
                         $tokens[] = [
                             'type'  => self::TOKEN_SPACE,
-                            'value' => $match[4]
+                            'value' => $match[4],
                         ];
                     }
                     $tokens[] = [
                         'type'  => self::TOKEN_VAR,
-                        'value' => $match[5]
+                        'value' => $match[5],
                     ];
                 } else {
                     $tokens[] = [
                         'type'  => self::TOKEN_VAR,
-                        'value' => $match[1]
+                        'value' => $match[1],
                     ];
                 }
                 return [
-                    'match' => $match[1],
-                    'tokens' => $tokens
+                    'match'  => $match[1],
+                    'tokens' => $tokens,
                 ];
             case 'number':
                 return [
-                    'match' => $match[1],
-                    'tokens' => [['type'  => self::TOKEN_INT, 'value' => $match[1]]]
+                    'match'  => $match[1],
+                    'tokens' => [['type' => self::TOKEN_INT, 'value' => $match[1]]],
                 ];
             case 'string':
 
@@ -225,7 +265,7 @@ class PHP implements TokenizerInterface
 
                     $tokens[] = [
                         'type'  => self::TOKEN_WORD,
-                        'value' => $match[2]
+                        'value' => $match[2],
                     ];
                     $matched = $match[2];
                 } else {
@@ -245,32 +285,32 @@ class PHP implements TokenizerInterface
                     $next !== false && $next > 1
                     && (
                         // "\" string escape
-                        ($str[$next - 1] == '\\' && $str[$next - 2] != '\\')
+                    ($str[$next - 1] == '\\' && $str[$next - 2] != '\\')
                     )
                 );
 
-                if($next === false){
+                if ($next === false) {
                     $tokens[] = [
-                        'type' => self::TOKEN_STRING,
-                        'value' => $value = $str
+                        'type'  => self::TOKEN_STRING,
+                        'value' => $value = $str,
                     ];
                 } else {
                     $tokens[] = [
-                        'type' => self::TOKEN_STRING,
-                        'value' => $value = substr($str, 0, $next + (isset($match[5]) ? 0 : 1))
+                        'type'  => self::TOKEN_STRING,
+                        'value' => $value = substr($str, 0, $next + (isset($match[5]) ? 0 : 1)),
                     ];
                 }
 
                 $matched .= $value;
 
-                if(isset($match[5])){
+                if (isset($match[5])) {
                     $tokens[] = [
                         'type'  => self::TOKEN_WORD,
-                        'value' => $match[6]
+                        'value' => $match[6],
                     ];
                     $tokens[] = [
                         'type'  => self::TOKEN_PUNCTUATION,
-                        'value' => ';'
+                        'value' => ';',
                     ];
                     $matched .= $match[5];
                 }
@@ -298,8 +338,8 @@ class PHP implements TokenizerInterface
         }
 
         return [
-            'match' => $match[0],
-            'tokens' => [['type' => 'unknown', 'value' => $match[0]]]
+            'match'  => $match[0],
+            'tokens' => [['type' => 'unknown', 'value' => $match[0]]],
         ];
     }
 
@@ -325,8 +365,8 @@ class PHP implements TokenizerInterface
         $value = substr($str, 0, $open);
 
         return [
-            'match' => $value,
-            'tokens' => [['type' => 'unknown', 'value' => $value]]
+            'match'  => $value,
+            'tokens' => [['type' => 'unknown', 'value' => $value]],
         ];
     }
 
@@ -339,7 +379,7 @@ class PHP implements TokenizerInterface
         $tokens = [];
 
         $rx = self::RX;
-
+        $previous = null;
         while ($item = current($rx)) {
             if ($this->context !== 'php') {
                 $token = $this->extractOtherContext($str);
@@ -356,7 +396,7 @@ class PHP implements TokenizerInterface
             $type = key($rx);
 
             if (preg_match($item, $str, $match)) {
-                $token = $this->token($type, $match);
+                $token = $this->token($type, $match, $previous);
 
                 $str = substr($str, strlen($token['match']));
 
@@ -364,6 +404,12 @@ class PHP implements TokenizerInterface
 
                 if (empty($str)) {
                     break;
+                }
+
+                foreach ($token['tokens'] as $t) {
+                    if ($t['type'] !== TokenizerInterface::TOKEN_SPACE) {
+                        $previous = $t;
+                    }
                 }
 
                 reset($rx);
