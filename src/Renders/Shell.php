@@ -3,7 +3,7 @@
 namespace Highlight\Renders;
 
 use Highlight\RenderInterface;
-use Highlight\TokenizerInterface;
+use Highlight\Token;
 
 /**
  * Class Shell
@@ -30,40 +30,85 @@ class Shell implements RenderInterface
     const C_GRAY         = "0;37";
     const C_GRAY_LIGHT   = "1;37";
 
-    public function render(array $tokens, array $options = [])
+    private $options = [];
+
+    public function __construct(array $options = [])
+    {
+        $this->options = $options;
+    }
+
+    public function render(array $tokens)
     {
         $str = '';
 
         foreach ($tokens as $token) {
             switch ($token['type']){
-                case TokenizerInterface::TOKEN_OPERATOR:
-                    $str .= $this->colorize($token['value'], self::C_GRAY);
+                case Token::TOKEN_OPERATOR:
+                    $str .= $this->colorize(
+                        $token['value'],
+                        isset($this->options['colors'][$token['type']])
+                            ? $this->options['colors'][$token['type']]
+                            : self::C_GRAY
+                    );
                     break;
-                case TokenizerInterface::TOKEN_VAR:
-                    $str .= $this->colorize($token['value'], self::C_GRAY_LIGHT);
+                case Token::TOKEN_VARIABLE:
+                    $str .= $this->colorize(
+                        $token['value'],
+                        isset($this->options['colors'][$token['type']])
+                            ? $this->options['colors'][$token['type']]
+                            : self::C_GRAY_LIGHT
+                    );
                     break;
-                case TokenizerInterface::TOKEN_KEY:
-                    $str .= $this->colorize($token['value'], self::C_PURPLE);
+                case Token::TOKEN_KEYWORD:
+                    $str .= $this->colorize(
+                        $token['value'],
+                        isset($this->options['colors'][$token['type']])
+                            ? $this->options['colors'][$token['type']]
+                            : self::C_PURPLE
+                    );
                     break;
-                case TokenizerInterface::TOKEN_FUNCTION:
-                    $str .= $this->colorize($token['value'], self::C_YELLOW);
+                case Token::TOKEN_FUNCTION:
+                    $str .= $this->colorize(
+                        $token['value'],
+                        isset($this->options['colors'][$token['type']])
+                            ? $this->options['colors'][$token['type']]
+                            : self::C_YELLOW
+                    );
                     break;
-                case TokenizerInterface::TOKEN_STRING:
-                    $str .= $this->colorize($token['value'], self::C_GREEN_LIGHT);
+                case Token::TOKEN_STRING:
+                    $str .= $this->colorize(
+                        $token['value'],
+                        isset($this->options['colors'][$token['type']])
+                            ? $this->options['colors'][$token['type']]
+                            : self::C_GREEN_LIGHT
+                    );
                     break;
-                case TokenizerInterface::TOKEN_INT:
-                    $str .= $this->colorize($token['value'], self::C_BLUE);
+                case Token::TOKEN_NUMBER:
+                    $str .= $this->colorize(
+                        $token['value'],
+                        isset($this->options['colors'][$token['type']])
+                            ? $this->options['colors'][$token['type']]
+                            : self::C_BLUE
+                    );
                     break;
-                case TokenizerInterface::TOKEN_COMMENT:
-                    $str .= $this->colorize($token['value'], self::C_BLACK_LIGHT);
+                case Token::TOKEN_COMMENT:
+                    $str .= $this->colorize(
+                        $token['value'],
+                        isset($this->options['colors'][$token['type']])
+                            ? $this->options['colors'][$token['type']]
+                            : self::C_BLACK_LIGHT
+                    );
                     break;
-
-                case TokenizerInterface::TOKEN_NAMESPACE:
-                    $str .= $this->colorize($token['value'], self::C_GRAY);
+                case Token::TOKEN_NAMESPACE:
+                    $str .= $this->colorize(
+                        $token['value'],
+                        isset($this->options['colors'][$token['type']])
+                            ? $this->options['colors'][$token['type']]
+                            : self::C_GRAY
+                    );
                     break;
-
-                case TokenizerInterface::TOKEN_PUNCTUATION:
-                case TokenizerInterface::TOKEN_SPACE:
+                case Token::TOKEN_PUNCTUATION:
+                case Token::TOKEN_WHITESPACE:
                 default:
                     $str .= $token['value'];
                     break;

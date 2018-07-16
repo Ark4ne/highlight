@@ -9,13 +9,13 @@ namespace Highlight;
  */
 class Highlighter
 {
-    /** @var \Highlight\TokenizerInterface */
+    /** @var \Highlight\LanguageInterface */
     private $tokenizer;
 
     /** @var \Highlight\RenderInterface */
     private $render;
 
-    public function __construct(TokenizerInterface $tokenizer, RenderInterface $render)
+    public function __construct(LanguageInterface $tokenizer, RenderInterface $render)
     {
         $this->tokenizer = $tokenizer;
         $this->render = $render;
@@ -23,23 +23,30 @@ class Highlighter
 
     /**
      * @param \string $str
-     * @param array   $options
      *
      * @return \string
      */
-    public function highlight($str, array $options = [])
+    public function highlight($str)
     {
-        return $this->render->render($this->tokenizer->tokenize($str), $options);
+        return
+            $this->render->render(
+                $this->tokenizer->format(
+                    $this->tokenizer->tokenize(
+                        $str
+                    )
+                )
+            );
     }
 
     /**
      * @param \string $tokenizerClass
      * @param \string $renderClass
+     * @param array   $options
      *
      * @return \Highlight\Highlighter
      */
-    public static function factory($tokenizerClass, $renderClass)
+    public static function factory($tokenizerClass, $renderClass, array $options = [])
     {
-        return new self(new $tokenizerClass, new $renderClass);
+        return new self(new $tokenizerClass($options), new $renderClass($options));
     }
 }

@@ -3,7 +3,7 @@
 namespace Highlight\Renders;
 
 use Highlight\RenderInterface;
-use Highlight\TokenizerInterface;
+use Highlight\Token;
 
 /**
  * Class Html
@@ -14,39 +14,41 @@ class Html implements RenderInterface
 {
 
     private static $styles = [
-        'line_number' => "color:#999;padding:0 5px 0 2px;margin-right:5px;background-color:#444;border-bottom:1px solid #444;border-right:1px solid #555;width:2.4rem;display:inline-block;text-align:right;-webkit-touch-callout:none;-webkit-user-select:none;-khtml-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;",
-        'line_selected' => "display:inline-block;background-color:#444;width:100%",
-        'pre' => 'font-size:12px;line-height:1.3;background-color: #2b2b2b;margin:0;color:#f7f7f7',
-        TokenizerInterface::TOKEN_NAMESPACE => 'color:#90caf9',
-        TokenizerInterface::TOKEN_VAR => 'color:#ce93d8',
-        TokenizerInterface::TOKEN_KEY => 'color:#fb8c00;',
-        TokenizerInterface::TOKEN_FUNCTION => 'color:#fdd835;',
-        TokenizerInterface::TOKEN_STRING => 'color:#6A8759',
-        TokenizerInterface::TOKEN_INT => 'color:#6897BB ',
-        TokenizerInterface::TOKEN_COMMENT => 'color:#808080 ',
-        TokenizerInterface::TOKEN_BLOCK_COMMENT => 'color:#808080 ',
+        'line_number'              => "color:#999;padding:0 5px 0 2px;margin-right:5px;background-color:#444;border-bottom:1px solid #444;border-right:1px solid #555;width:2.4rem;display:inline-block;text-align:right;-webkit-touch-callout:none;-webkit-user-select:none;-khtml-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;",
+        'line_selected'            => "display:inline-block;width:100%;background-color:#3a3a3a",
+        'pre'                      => 'font-size:12px;line-height:1.3;background-color: #2b2b2b;margin:0;color:#a9b7c6',
+
+        Token::TOKEN_NAMESPACE     => 'color:#a9b7c6',
+        Token::TOKEN_VARIABLE      => 'color:#9876aa',
+        Token::TOKEN_KEYWORD       => 'color:#cc7832;',
+        Token::TOKEN_FUNCTION      => 'color:#ffc66d;',
+        Token::TOKEN_STRING        => 'color:#6a8759',
+        Token::TOKEN_NUMBER        => 'color:#6897bb ',
+        Token::TOKEN_COMMENT       => 'color:#808080 ',
+        Token::TOKEN_BLOCK_COMMENT => 'color:#808080 ',
     ];
 
-    public static function styles(array $colors)
+    private $options = [];
+
+    public function __construct(array $options = [])
     {
-        self::$styles = array_merge(self::$styles, $colors);
+        $this->options = $options;
     }
 
     /**
      * Render an list of tokens
      *
      * @param array $tokens
-     * @param array $options
      *
      * @return string
      */
-    public function render(array $tokens, array $options = [])
+    public function render(array $tokens)
     {
-        $styles = array_merge(self::$styles, isset($options['styles']) ? $options['styles'] : []);
+        $styles = array_merge(self::$styles, isset($this->options['styles']) ? $this->options['styles'] : []);
 
         $html = '';
 
-        if(empty($options['inlineStyle'])){
+        if(empty($this->options['inlineStyle'])){
             $ctx = uniqid("hl");
             $html = "<style rel='stylesheet'>";
             foreach ($styles as $key => $style) {
@@ -71,7 +73,7 @@ class Html implements RenderInterface
                 }
 
                 $str .= implode("\n", $parts);
-            } elseif($token['type'] == TokenizerInterface::TOKEN_SPACE) {
+            } elseif($token['type'] == Token::TOKEN_WHITESPACE) {
                 $str .= str_replace(' ', '&nbsp;', $token['value']);
             } else {
                 $str .= $token['value'];
@@ -80,7 +82,7 @@ class Html implements RenderInterface
 
         $lines = explode("\n", str_replace(["\r\n", "\r"], "\n", $str));
 
-        if (!empty($options['withLineNumber'])) {
+        if (!empty($this->options['withLineNumber'])) {
             foreach ($lines as $idx => $line) {
                 if (isset($ctx)) {
                     $lines[$idx] = '<code class="' . $ctx . 'line_number">' . ($idx+1) . '</code>' . $line;
@@ -90,19 +92,19 @@ class Html implements RenderInterface
             }
         }
 
-        if(isset($options['lineSelected'])){
+        if(isset($this->options['lineSelected'])){
             if (isset($ctx)) {
-                $lines[$options['lineSelected']-1] = '<code class="' . $ctx . 'line_selected">' . $lines[$options['lineSelected']-1] . '</code>';
+                $lines[$this->options['lineSelected']-1] = '<code class="' . $ctx . 'line_selected">' . $lines[$this->options['lineSelected']-1] . '</code>';
             } else {
-                $lines[$options['lineSelected']-1] = '<code style="' . $styles['line_selected'] . '">' . $lines[$options['lineSelected']-1] . '</code>';
+                $lines[$this->options['lineSelected']-1] = '<code style="' . $styles['line_selected'] . '">' . $lines[$this->options['lineSelected']-1] . '</code>';
             }
         }
 
-        if (isset($options['lineOffset']) && isset($options['lineLimit'])) {
-            $lines = array_slice($lines, $options['lineOffset'], $options['lineLimit']);
+        if (isset($this->options['lineOffset']) && isset($this->options['lineLimit'])) {
+            $lines = array_slice($lines, $this->options['lineOffset'], $this->options['lineLimit']);
         }
 
-        if(empty($options['noPre'])){
+        if(empty($this->options['noPre'])){
             if (isset($ctx)) {
                 return $html . '<pre class="' . $ctx . 'pre">' . implode("\n", $lines) . '</pre>';
             } else {
