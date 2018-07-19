@@ -392,49 +392,54 @@ class PHP implements LanguageInterface
         $tokens = [];
 
         $rx = self::RX;
-        $previous = null;
-        while ($item = current($rx)) {
-            if ($this->context !== 'php') {
-                $token = $this->extractOtherContext($str);
 
-                $str = substr($str, strlen($token['match']));
+        while (!empty($str)) {
+            $previous = null;
+            while ($item = current($rx)) {
+                if ($this->context !== 'php') {
+                    $token = $this->extractOtherContext($str);
 
-                $tokens = array_merge($tokens, $token['tokens']);
+                    $str = substr($str, strlen($token['match']));
 
-                if (empty($str)) {
-                    break;
-                }
-            }
+                    $tokens = array_merge($tokens, $token['tokens']);
 
-            $type = key($rx);
-
-            if (preg_match($item, $str, $match)) {
-                $token = $this->token($type, $match, $previous);
-
-                $str = substr($str, strlen($token['match']));
-
-                $tokens = array_merge($tokens, $token['tokens']);
-
-                if (empty($str)) {
-                    break;
-                }
-
-                foreach ($token['tokens'] as $t) {
-                    if ($t['type'] !== Token::TOKEN_WHITESPACE) {
-                        $previous = $t;
+                    if (empty($str)) {
+                        break;
                     }
                 }
 
-                reset($rx);
-            } else {
-                next($rx);
+                $type = key($rx);
+
+                if (preg_match($item, $str, $match)) {
+                    $token = $this->token($type, $match, $previous);
+
+                    $str = substr($str, strlen($token['match']));
+
+                    $tokens = array_merge($tokens, $token['tokens']);
+
+                    if (empty($str)) {
+                        break;
+                    }
+
+                    foreach ($token['tokens'] as $t) {
+                        if ($t['type'] !== Token::TOKEN_WHITESPACE) {
+                            $previous = $t;
+                        }
+                    }
+
+                    reset($rx);
+                } else {
+                    next($rx);
+                }
             }
-        }
 
-        if (!empty($str)) {
-            $tokens[] = ['type' => 'unknown', 'value' => $str[0]];
+            if (!empty($str)) {
+                reset($rx);
 
-            $tokens = array_merge($tokens, $this->parse(substr($str, 1)));
+                $tokens[] = ['type' => 'unknown', 'value' => $str[0]];
+
+                $str = substr($str, 1);
+            }
         }
 
         return $tokens;
