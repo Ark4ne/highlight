@@ -14,9 +14,31 @@ class Html implements RenderInterface
 {
 
     private static $styles = [
-        'line_number'              => "color:#999;padding:0 5px 0 2px;margin-right:5px;background-color:#444;border-bottom:1px solid #444;border-right:1px solid #555;width:2.4rem;display:inline-block;text-align:right;-webkit-touch-callout:none;-webkit-user-select:none;-khtml-user-select:none;-moz-user-select:none;-ms-user-select:none;user-select:none;",
-        'line_selected'            => "display:inline-block;width:100%;background-color:#3a3a3a",
-        'pre'                      => 'font-size:12px;line-height:1.3;background-color: #2b2b2b;margin:0;color:#a9b7c6',
+        'line_number'   =>
+            'color:#999;padding:0 5px 0 2px;'
+            . 'margin-right:5px;'
+            . 'background-color:#444;'
+            . 'border-bottom:1px solid #444;'
+            . 'border-right:1px solid #555;'
+            . 'width:2.4rem;'
+            . 'display:inline-block;'
+            . 'text-align:right;'
+            . '-webkit-touch-callout:none;'
+            . '-webkit-user-select:none;'
+            . '-khtml-user-select:none;'
+            . '-moz-user-select:none;'
+            . '-ms-user-select:none;'
+            . 'user-select:none;',
+        'line_selected' =>
+            'display:inline-block;'
+            . 'width:100%;'
+            . 'background-color:#3a3a3a',
+        'pre'           =>
+            'font-size:12px;'
+            . 'line-height:1.3;'
+            . 'background-color: #2b2b2b;'
+            . 'color:#a9b7c6;'
+            . 'margin:0',
 
         Token::TOKEN_NAMESPACE     => 'color:#a9b7c6',
         Token::TOKEN_VARIABLE      => 'color:#9876aa',
