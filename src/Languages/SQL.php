@@ -47,7 +47,7 @@ class SQL implements LanguageInterface
 
     /*private*/ const _x_bind = '(?:(?:@|:)\w+:?|\?)';
 
-    /*private*/ const _x_str = '(?:\'[\w\W]*\'|"[\w\W]*")';
+    /*private*/ const _x_str = '(?:[\'"][\w\W]*)';
 
     /*private*/ const _x_number = '\d+(?:\.\d+)?';
 
@@ -186,22 +186,26 @@ class SQL implements LanguageInterface
                     );
                 }
 
-                preg_match('&^["\']&', $str, $m);
+                $separator = $str[0];
 
                 $next = 0;
 
                 do {
-                    $next = strpos($str, $m[0], $next + 1);
+                    $next = strpos($str, $separator, $next + 1);
                 } while (
-                    $next > 1
+                    $next !== false
+                    && $next > 1
                     && (
                         // "\" string escape
                         ($str[$next - 1] == '\\' && $str[$next - 2] != '\\')
-                        // double sign ' '' ' escape
-                        || (isset($str[$next + 1]) && $str[$next + 1] == $m[0] && $next++)
+                        // double sign " '' " escape
+                        || (isset($str[$next + 1]) && $str[$next + 1] == $separator && $next++)
                     )
                 );
 
+                if ($next === false) {
+                    return [['type' => Token::TOKEN_STRING, 'value' => $str]];
+                }
                 return array_merge(
                     [['type' => Token::TOKEN_STRING, 'value' => substr($str, 0, $next + 1)]],
                     $this->parse(substr($str, $next + 1))
