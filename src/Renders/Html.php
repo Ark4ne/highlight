@@ -84,21 +84,24 @@ class Html implements RenderInterface
         foreach ($tokens as $token) {
             $token['value'] = htmlspecialchars($token['value']);
 
-            if (!empty($styles[$token['type']])) {
+            if ($token['type'] == Token::TOKEN_WHITESPACE) {
+                $str .= str_replace(' ', '&nbsp;', $token['value']);
+            } else {
                 $parts = [];
-                foreach (explode("\n", str_replace(["\r\n", "\r"], "\n", $token['value'])) as $w) {
+                $style = '';
+                if (!empty($styles[$token['type']])) {
                     if (isset($ctx)) {
-                        $parts[] = '<code class="' . $ctx . $token['type'] . '">' . $w . '</code>';
+                        $style = 'class="' . $ctx . $token['type'] . '"';
                     } else {
-                        $parts[] = '<code style="' . $styles[$token['type']] . '">' . $w . '</code>';
+                        $style = 'style="' . $styles[$token['type']] . '"';
                     }
                 }
 
+                foreach (explode("\n", str_replace(["\r\n", "\r"], "\n", $token['value'])) as $w) {
+                    $parts[] = '<code ' . $style . '>' . $w . '</code>';
+                }
+
                 $str .= implode("\n", $parts);
-            } elseif($token['type'] == Token::TOKEN_WHITESPACE) {
-                $str .= str_replace(' ', '&nbsp;', $token['value']);
-            } else {
-                $str .= $token['value'];
             }
         }
 
@@ -129,15 +132,15 @@ class Html implements RenderInterface
         if(empty($this->options['noPre'])){
             if (isset($ctx)) {
                 return $html . '<pre class="' . $ctx . 'pre">' . implode("\n", $lines) . '</pre>';
-            } else {
-                return $html . '<pre style="' . $styles['pre'] . '">' . implode("\n", $lines) . '</pre>';
             }
+
+            return $html . '<pre style="' . $styles['pre'] . '">' . implode("\n", $lines) . '</pre>';
         }
 
         if (isset($ctx)) {
             return $html . implode("\n", $lines) . '</pre>';
-        } else {
-            return $html . implode("\n", $lines) . '</pre>';
         }
+
+        return $html . implode("\n", $lines) . '</pre>';
     }
 }
