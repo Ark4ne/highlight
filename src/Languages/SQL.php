@@ -304,7 +304,7 @@ class SQL implements LanguageInterface
 
         switch ($style) {
             case self::FORMAT_COMPRESS:
-                $_tokens = [];
+                $formatted = [];
                 foreach ($tokens as $token) {
                     if ($token['type'] == Token::TOKEN_WHITESPACE
                         || $token['type'] == Token::TOKEN_COMMENT
@@ -314,35 +314,32 @@ class SQL implements LanguageInterface
 
                     if ($token['type'] == Token::TOKEN_PUNCTUATION) {
                         if ($token['value'] == ',' || $token['value'] == ')' || $token['value'] == '.') {
-                            array_pop($_tokens);
+                            array_pop($formatted);
                         }
                     }
 
-                    $_tokens[] = $token;
+                    $formatted[] = $token;
 
                     if (!($token['type'] == Token::TOKEN_FUNCTION
                         || ($token['type'] == Token::TOKEN_PUNCTUATION
                             && ($token['value'] == '(' || $token['value'] == '.')))
                     ) {
-                        $_tokens[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => ' '];
+                        $formatted[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => ' '];
                     }
                 }
-                return $_tokens;
+                return $formatted;
             case self::FORMAT_NESTED:
             case self::FORMAT_EXPAND:
-                $_tokens = [];
-
-                foreach ($tokens as $token) {
-                    if ($token['type'] != Token::TOKEN_WHITESPACE) {
-                        $_tokens[] = $token;
-                    }
-                }
-
-                $tokens = $_tokens;
-                $_tokens = [];
+                $tokens = array_filter($tokens, function ($token) {
+                    return $token['type'] !== Token::TOKEN_WHITESPACE;
+                });;
+                $formatted = [];
                 $indent = 0;
                 $indents = [];
-                $next_indent = false;
+                $indentSize = isset($this->options['indent'])
+                    ? $this->options['indent']
+                    : 4;
+                $nextIndent = false;
 
                 foreach ($tokens as $idx => $token) {
                     switch ($token['type']) {
@@ -351,8 +348,8 @@ class SQL implements LanguageInterface
                                 do {
                                     $indent && $indent--;
                                 } while ($indent && array_pop($indents) != 'BEGIN');
-                                $_tokens = $this->ln($_tokens);
-                                $next_indent = true;
+                                $formatted = $this->ln($formatted);
+                                $nextIndent = true;
                             } elseif (preg_match('~^(' . self::_x_keywords_top . ')~i', $token['value'])
                                 && !(
                                     ($upper = strtoupper($token['value']))
@@ -361,13 +358,13 @@ class SQL implements LanguageInterface
                                     && $prev['type'] == Token::TOKEN_KEYWORD
                                 )
                             ) {
-                                $_tokens = $this->ln($_tokens);
-                                $next_indent = true;
+                                $formatted = $this->ln($formatted);
+                                $nextIndent = true;
                                 $indent && $indent--;
                                 array_pop($indents);
                             } elseif (preg_match('~^(' . self::_x_keywords_ln . ')~i', $token['value'])) {
-                                $_tokens = $this->ln($_tokens);
-                                $next_indent = true;
+                                $formatted = $this->ln($formatted);
+                                $nextIndent = true;
                             }
                             break;
                         case Token::TOKEN_PUNCTUATION:
@@ -375,8 +372,8 @@ class SQL implements LanguageInterface
                                 if (array_pop($indents) == 'indent') {
                                     $indent--;
                                     if ($style == self::FORMAT_EXPAND) {
-                                        $_tokens = $this->ln($_tokens);
-                                        $next_indent = true;
+                                        $formatted = $this->ln($formatted);
+                                        $nextIndent = true;
                                     }
                                 }
                             } elseif ($token['value'] == self::$compute_delimiter) {
@@ -385,26 +382,26 @@ class SQL implements LanguageInterface
                             }
                     }
 
-                    if ($next_indent) {
-                        $_tokens[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => str_repeat(' ', $indent * 4)];
-                        $next_indent = false;
+                    if ($nextIndent) {
+                        $formatted[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => str_repeat(' ', $indent * $indentSize)];
+                        $nextIndent = false;
                     }
 
-                    $_tokens[] = $token;
+                    $formatted[] = $token;
 
                     switch ($token['type']) {
                         case Token::TOKEN_FUNCTION:
                             if (($next = (isset($tokens[$idx + 1]) ? $tokens[$idx + 1] : null)) && !($next['value'] == '(')) {
-                                $_tokens[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => ' '];
+                                $formatted[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => ' '];
                             }
                             break;
                         case Token::TOKEN_KEYWORD:
                             if (preg_match('~^(' . self::_x_keywords_top . ')~i', $token['value'])) {
                                 if ($style == self::FORMAT_EXPAND) {
-                                    $_tokens = $this->ln($_tokens);
-                                    $next_indent = true;
+                                    $formatted = $this->ln($formatted);
+                                    $nextIndent = true;
                                 } else {
-                                    $_tokens[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => ' '];
+                                    $formatted[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => ' '];
                                 }
                                 $indent++;
                                 $indents[] = $token['value'];
@@ -413,19 +410,19 @@ class SQL implements LanguageInterface
                                     || $next['value'] == ')'
                                     || $next['value'] == '.'
                                     || $next['value'] == ';')) {
-                                $_tokens[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => ' '];
+                                $formatted[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => ' '];
                             }
                             break;
                         case Token::TOKEN_COMMENT:
-                            $_tokens = $this->ln($_tokens);
-                            $next_indent = true;
+                            $formatted = $this->ln($formatted);
+                            $nextIndent = true;
                             break;
                         case Token::TOKEN_PUNCTUATION:
                             switch ($token['value']) {
                                 case self::$compute_delimiter;
                                     $indents = [];
                                     $indent = 0;
-                                    $_tokens = $this->ln($_tokens);
+                                    $formatted = $this->ln($formatted);
                                     break;
                                 case '.';
                                     break;
@@ -481,8 +478,8 @@ class SQL implements LanguageInterface
                                     } else {
                                         $indents[] = 'indent';
                                         $indent++;
-                                        $_tokens = $this->ln($_tokens);
-                                        $next_indent = true;
+                                        $formatted = $this->ln($formatted);
+                                        $nextIndent = true;
                                     }
                                     break;
                                 case ',':
@@ -494,8 +491,8 @@ class SQL implements LanguageInterface
                                                 && !($next['type'] == Token::TOKEN_NUMBER
                                                     || $next['type'] == Token::TOKEN_STRING
                                                     || $next['type'] == Token::TOKEN_COMMENT)) {
-                                                $_tokens = $this->ln($_tokens);
-                                                $next_indent = true;
+                                                $formatted = $this->ln($formatted);
+                                                $nextIndent = true;
                                                 break;
                                             } elseif ($style == self::FORMAT_NESTED
                                                 && ($next = (isset($tokens[$idx + 1]) ? $tokens[$idx + 1] : null))
@@ -509,14 +506,14 @@ class SQL implements LanguageInterface
                                                     }
                                                     if ($tokens[$jdx]['type'] == Token::TOKEN_KEYWORD
                                                         && !preg_match('~^(' . self::_x_keywords_ln . ')~i', $tokens[$jdx]['value'])) {
-                                                        $_tokens = $this->ln($_tokens);
-                                                        $next_indent = true;
+                                                        $formatted = $this->ln($formatted);
+                                                        $nextIndent = true;
                                                         break 2;
                                                     }
                                                 }
                                             }
                                         case 'inline':
-                                            $_tokens[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => ' '];
+                                            $formatted[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => ' '];
                                     }
                                     break;
                                 case ')':
@@ -526,7 +523,7 @@ class SQL implements LanguageInterface
                                             || $next['value'] == ')'
                                             || $next['value'] == '.'
                                             || $next['value'] == ';')) {
-                                        $_tokens[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => ' '];
+                                        $formatted[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => ' '];
                                     }
                             }
                             break;
@@ -536,11 +533,11 @@ class SQL implements LanguageInterface
                                     || $next['value'] == ')'
                                     || $next['value'] == '.'
                                     || $next['value'] == ';')) {
-                                $_tokens[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => ' '];
+                                $formatted[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => ' '];
                             }
                     }
                 }
-                return $_tokens;
+                return $formatted;
                 break;
             case self::FORMAT_NONE:
             default:

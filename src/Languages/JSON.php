@@ -199,6 +199,9 @@ class JSON implements LanguageInterface
                     return $token['type'] !== Token::TOKEN_WHITESPACE;
                 });
                 $indent = 0;
+                $indentSize = isset($this->options['indent'])
+                    ? $this->options['indent']
+                    : 4;
                 $nextIndent = false;
                 foreach ($tokens as $idx => $token) {
                     if ($token['type'] == Token::TOKEN_PUNCTUATION) {
@@ -219,7 +222,7 @@ class JSON implements LanguageInterface
                     }
 
                     if ($indent && $nextIndent) {
-                        $formatted[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => str_repeat(' ', $indent * 4)];
+                        $formatted[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => str_repeat(' ', $indent * $indentSize)];
                         $nextIndent = false;
                     }
 
