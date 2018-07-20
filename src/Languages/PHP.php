@@ -73,6 +73,10 @@ class PHP implements LanguageInterface
     public function __construct(array $options = [])
     {
         $this->options = $options;
+
+        $this->context = isset($options['context'])
+            ? $options['context']
+            : 'html';
     }
 
     private function token($type, $match, $previous = null)
