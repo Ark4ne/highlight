@@ -14,9 +14,7 @@ class JSON implements LanguageInterface
 {
     const X_WHITESPACES = '^(\s+)';
 
-    const X_OPEN = '^[\[\{]';
-
-    const X_CLOSE = '^[\]\}]';
+    const X_PUNCTUATION = '^[\[\{\]\},]';
 
     const X_KEYWORDS = '^(true|false|null)';
 
@@ -26,12 +24,8 @@ class JSON implements LanguageInterface
 
     const X_PROPERTY = '^:';
 
-    const X_PUNCTUATION = '^,';
-
     const RX = [
         'whitespaces' => '~' . self::X_WHITESPACES . '~',
-        'open'        => '~' . self::X_OPEN . '~',
-        'close'       => '~' . self::X_CLOSE . '~',
         'punctuation' => '~' . self::X_PUNCTUATION . '~',
         'property'    => '~' . self::X_PROPERTY . '~',
         'keywords'    => '~' . self::X_KEYWORDS . '~i',
@@ -59,8 +53,6 @@ class JSON implements LanguageInterface
                     'match'  => $match[0],
                     'tokens' => [['type' => Token::TOKEN_WHITESPACE, 'value' => $match[0]]],
                 ];
-            case 'open':
-            case 'close':
             case 'punctuation':
                 return [
                     'match'  => $match[0],
@@ -110,6 +102,11 @@ class JSON implements LanguageInterface
                     'tokens' => [['type' => Token::TOKEN_STRING, 'value' => $value]],
                 ];
         }
+
+        return [
+            'match'  => $match[0],
+            'tokens' => [['type' => 'unknown', 'value' => $match[0]]],
+        ];
     }
 
     private function parse($str)
@@ -139,14 +136,13 @@ class JSON implements LanguageInterface
                         break;
                     }
 
-                    end($tokens);
-                    while ($current = current($tokens)) {
-                        if ($current['type'] !== Token::TOKEN_WHITESPACE) {
-                            $previous = &$tokens[key($tokens)];
+                    $itokens = count($tokens);
+                    while ($itokens--) {
+                        if ($tokens[$itokens]['type'] !== Token::TOKEN_WHITESPACE) {
+                            $previous = &$tokens[$itokens];
                             break;
                         }
-                        prev($tokens);
-                    }
+                    };
 
                     reset($rx);
                 } else {
@@ -187,30 +183,39 @@ class JSON implements LanguageInterface
      */
     public function format(array $tokens)
     {
-        switch (isset($this->options['format']) ? $this->options['format'] : null) {
-            case self::FORMAT_EXPAND:
-                // TODO Implement format
-            case self::FORMAT_NESTED:
-                // TODO Implement format
-                $formatted = [];
+        $format = isset($this->options['format'])
+            ? $this->options['format']
+            : null;
 
+        switch ($format) {
+            case self::FORMAT_COMPRESS:
+                return array_filter($tokens, function ($token) {
+                    return $token['type'] !== Token::TOKEN_WHITESPACE;
+                });
+            case self::FORMAT_EXPAND:
+            case self::FORMAT_NESTED:
+                $formatted = [];
+                $tokens = array_filter($tokens, function ($token) {
+                    return $token['type'] !== Token::TOKEN_WHITESPACE;
+                });
                 $indent = 0;
                 $nextIndent = false;
-                foreach ($tokens as $token) {
-                    switch ($token['type']) {
-                        case Token::TOKEN_WHITESPACE:
-                            continue 2;
-                        case Token::TOKEN_PUNCTUATION:
-                            switch ($token['value']) {
-                                case '{':
-                                case '[':
-                                    $indent++;
-                                    break;
-                                case ']':
-                                case '}':
-                                    $indent--;
-                                    break;
-                            }
+                foreach ($tokens as $idx => $token) {
+                    if ($token['type'] == Token::TOKEN_PUNCTUATION) {
+                        switch ($token['value']) {
+                            case '{':
+                            case '[':
+                                $indent++;
+                                break;
+                            case ']':
+                            case '}':
+                                $indent--;
+                                if ($format === self::FORMAT_EXPAND) {
+                                    $formatted[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => "\n"];
+                                    $nextIndent = true;
+                                }
+                                break;
+                        }
                     }
 
                     if ($indent && $nextIndent) {
@@ -220,26 +225,23 @@ class JSON implements LanguageInterface
 
                     $formatted[] = $token;
 
-                    switch ($token['type']) {
-                        case Token::TOKEN_PUNCTUATION:
-                            switch ($token['value']) {
-                                case ',':
-                                case '{':
-                                case '[':
-                                    $formatted[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => "\n"];
-                                case ']':
-                                case '}':
-                                    $nextIndent = true;
-                                    break;
-                            }
+                    if ($token['type'] == Token::TOKEN_PUNCTUATION) {
+                        switch ($token['value']) {
+                            case ',':
+                            case '{':
+                            case '[':
+                                $formatted[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => "\n"];
+                            case ']':
+                            case '}':
+                                $nextIndent = isset($tokens[$idx + 1]['value']) ? $tokens[$idx + 1]['value'] !== ',' : true;
+                                break;
+                            case ':':
+                                $formatted[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => " "];
+                        }
                     }
                 }
 
                 return $formatted;
-            case self::FORMAT_COMPRESS:
-                return array_filter($tokens, function ($token) {
-                    return $token['type'] !== Token::TOKEN_WHITESPACE;
-                });
         }
 
         return $tokens;
