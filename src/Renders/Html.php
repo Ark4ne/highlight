@@ -137,10 +137,6 @@ class Html implements RenderInterface
             return $html . '<pre style="' . $styles['pre'] . '">' . implode("\n", $lines) . '</pre>';
         }
 
-        if (isset($ctx)) {
-            return $html . implode("\n", $lines) . '</pre>';
-        }
-
-        return $html . implode("\n", $lines) . '</pre>';
+        return $html . implode("\n", $lines);
     }
 }
