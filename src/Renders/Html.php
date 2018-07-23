@@ -82,7 +82,7 @@ class Html implements RenderInterface
         $str = '';
 
         foreach ($tokens as $token) {
-            $token['value'] = htmlspecialchars($token['value']);
+            $token['value'] = htmlspecialchars(str_replace(["\r\n", "\r"], "\n", $token['value']));
 
             if ($token['type'] == Token::TOKEN_WHITESPACE) {
                 $str .= str_replace(' ', '&nbsp;', $token['value']);
@@ -91,21 +91,21 @@ class Html implements RenderInterface
                 $style = '';
                 if (!empty($styles[$token['type']])) {
                     if (isset($ctx)) {
-                        $style = 'class="' . $ctx . $token['type'] . '"';
+                        $style = ' class="' . $ctx . $token['type'] . '"';
                     } else {
-                        $style = 'style="' . $styles[$token['type']] . '"';
+                        $style = ' style="' . $styles[$token['type']] . '"';
                     }
                 }
 
-                foreach (explode("\n", str_replace(["\r\n", "\r"], "\n", $token['value'])) as $w) {
-                    $parts[] = '<code ' . $style . '>' . $w . '</code>';
+                foreach (explode("\n", $token['value']) as $w) {
+                    $parts[] = '<code' . $style . '>' . $w . '</code>';
                 }
 
                 $str .= implode("\n", $parts);
             }
         }
 
-        $lines = explode("\n", str_replace(["\r\n", "\r"], "\n", $str));
+        $lines = explode("\n", $str);
 
         if (!empty($this->options['withLineNumber'])) {
             foreach ($lines as $idx => $line) {
@@ -118,14 +118,15 @@ class Html implements RenderInterface
         }
 
         if(isset($this->options['lineSelected'])){
+            $selected = $this->options['lineSelected']-1;
             if (isset($ctx)) {
-                $lines[$this->options['lineSelected']-1] = '<code class="' . $ctx . 'line_selected">' . $lines[$this->options['lineSelected']-1] . '</code>';
+                $lines[$selected] = '<code class="' . $ctx . 'line_selected">' . $lines[$selected] . '</code>';
             } else {
-                $lines[$this->options['lineSelected']-1] = '<code style="' . $styles['line_selected'] . '">' . $lines[$this->options['lineSelected']-1] . '</code>';
+                $lines[$selected] = '<code style="' . $styles['line_selected'] . '">' . $lines[$selected] . '</code>';
             }
         }
 
-        if (isset($this->options['lineOffset']) && isset($this->options['lineLimit'])) {
+        if (isset($this->options['lineOffset'], $this->options['lineLimit'])) {
             $lines = array_slice($lines, $this->options['lineOffset'], $this->options['lineLimit']);
         }
 
