@@ -159,7 +159,7 @@ class Shell implements RenderInterface
             return $hasColor;
         }
 
-        $opts = getopt('', ['no-colors::', 'colors::']);
+        $opts = self::getColor();
 
         if (isset($opts['no-colors'])) {
             return false;
@@ -188,7 +188,7 @@ class Shell implements RenderInterface
         }
 
         if (self::hasColorSupport()) {
-            $opts = getopt('', ['no-colors::', 'colors::']);
+            $opts = self::getColor();
 
             switch (isset($opts['colors']) ? $opts['colors'] : null) {
                 case 'full':
@@ -223,5 +223,22 @@ class Shell implements RenderInterface
         }
 
         return $colorLvl = self::COLOR_NONE;
+    }
+
+    private static function getColor()
+    {
+        $opts = getopt('', ['no-colors::', 'colors::']);
+        if (isset($opts['colors']) || isset($opts['no-colors'])) {
+            return $opts;
+        }
+
+        $opts = [];
+        foreach ($GLOBALS['argv'] as $arg) {
+            $kv = explode('=', $arg);
+
+            $opts[ltrim($kv[0], '-')] = isset($kv[1]) ? $kv[1] : false;
+        }
+
+        return $opts;
     }
 }
