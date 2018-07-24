@@ -3,6 +3,7 @@
 namespace Test;
 
 use Highlight\Languages\SQL;
+use Highlight\Languages\SQL2;
 use Highlight\Token;
 use PHPUnit\Framework\TestCase;
 
@@ -168,7 +169,7 @@ WHERE `video_id` = 123 AND `name` LIKE '⺇dz''d⺧'" => [
                 [Token::TOKEN_STRING, "'⺇dz''d⺧'"],
             ],
             "DELIMITER //
-CREATE TRIGGER OR_VIDEOS_name BEFORE INSERT ON videos_table
+CREATE TRIGGER INSERT_VIDEOS_name BEFORE INSERT ON videos_table
 FOR EACH ROW
 BEGIN
   UPDATE atable SET videos_count = videos_count + 1 WHERE id = NEW.id;
@@ -188,7 +189,7 @@ END
 
                 [Token::TOKEN_KEYWORD, 'CREATE TRIGGER'],
                 [Token::TOKEN_WHITESPACE, ' '],
-                [Token::TOKEN_VARIABLE, 'OR_VIDEOS_name'],
+                [Token::TOKEN_NAMESPACE, 'INSERT_VIDEOS_name'],
                 [Token::TOKEN_WHITESPACE, ' '],
                 [Token::TOKEN_KEYWORD, 'BEFORE INSERT ON'],
                 [Token::TOKEN_WHITESPACE, ' '],
@@ -197,8 +198,7 @@ END
                 [Token::TOKEN_KEYWORD, 'FOR EACH ROW'],
                 [Token::TOKEN_WHITESPACE, "\n"],
                 [Token::TOKEN_KEYWORD, 'BEGIN'],
-                [Token::TOKEN_WHITESPACE, "\n"],
-                [Token::TOKEN_WHITESPACE, '  '],
+                [Token::TOKEN_WHITESPACE, "\n  "],
                 [Token::TOKEN_KEYWORD, 'UPDATE'],
                 [Token::TOKEN_WHITESPACE, ' '],
                 [Token::TOKEN_NAMESPACE, 'atable'],
@@ -234,7 +234,7 @@ END
 
                 [Token::TOKEN_KEYWORD, 'CREATE TRIGGER'],
                 [Token::TOKEN_WHITESPACE, ' '],
-                [Token::TOKEN_VARIABLE, 'DELETE_VIDEOS_name'],
+                [Token::TOKEN_NAMESPACE, 'DELETE_VIDEOS_name'],
                 [Token::TOKEN_WHITESPACE, ' '],
                 [Token::TOKEN_KEYWORD, 'AFTER DELETE ON'],
                 [Token::TOKEN_WHITESPACE, ' '],
@@ -243,8 +243,7 @@ END
                 [Token::TOKEN_KEYWORD, 'FOR EACH ROW'],
                 [Token::TOKEN_WHITESPACE, "\n"],
                 [Token::TOKEN_KEYWORD, 'BEGIN'],
-                [Token::TOKEN_WHITESPACE, "\n"],
-                [Token::TOKEN_WHITESPACE, '  '],
+                [Token::TOKEN_WHITESPACE, "\n  "],
                 [Token::TOKEN_KEYWORD, 'UPDATE'],
                 [Token::TOKEN_WHITESPACE, ' '],
                 [Token::TOKEN_NAMESPACE, 'atable'],
