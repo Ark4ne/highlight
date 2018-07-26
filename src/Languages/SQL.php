@@ -270,45 +270,45 @@ class SQL implements LanguageInterface
         }
 
         $tokens = [];
+        $previous = null;
+        $ctokens = 0;
 
         $rx = ['punc_delimiter' => $this->rxDelimiter] + self::RX;
 
         while (!empty($str)) {
-            $previous = null;
+            $token = null;
 
-            while ($item = current($rx)) {
-                $type = key($rx);
-
-                if (preg_match($item, $str, $match)) {
+            foreach ($rx as $type => $regex) {
+                if (preg_match($regex, $str, $match)) {
                     $token = $this->token($type, $match, $previous);
-
-                    $str = substr($str, strlen($token['match']));
-
-                    $tokens = array_merge($tokens, $token['tokens']);
-
-                    if (empty($str)) {
-                        break;
-                    }
-
-                    $itokens = count($tokens);
-                    while ($itokens--) {
-                        if ($tokens[$itokens]['type'] !== Token::TOKEN_WHITESPACE) {
-                            $previous = &$tokens[$itokens];
-                            break;
-                        }
-                    };
-
-                    $rx['punc_delimiter'] = $this->rxDelimiter;
-                    reset($rx);
-                } else {
-                    next($rx);
+                    break;
                 }
             }
 
-            if (!empty($str)) {
-                reset($rx);
+            if (isset($token)) {
+                $str = substr($str, strlen($token['match']));
 
+                foreach ($token['tokens'] as $tok) {
+                    $tokens[] = $tok;
+                    $ctokens++;
+                }
+
+                if (empty($str)) {
+                    break;
+                }
+
+                $itokens = $ctokens;
+                while ($itokens--) {
+                    if ($tokens[$itokens]['type'] !== Token::TOKEN_WHITESPACE) {
+                        $previous = &$tokens[$itokens];
+                        break;
+                    }
+                };
+
+                $rx['punc_delimiter'] = $this->rxDelimiter;
+            } elseif (!empty($str)) {
                 $tokens[] = ['type' => 'unknown', 'value' => $str[0]];
+                $ctokens++;
 
                 $str = substr($str, 1);
             }

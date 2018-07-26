@@ -394,53 +394,57 @@ class PHP implements LanguageInterface
         }
 
         $tokens = [];
+        $ctokens = 0;
+        $previous = null;
 
         $rx = self::RX;
 
         while (!empty($str)) {
-            $previous = null;
-            while ($item = current($rx)) {
-                if ($this->context !== 'php') {
-                    $token = $this->extractOtherContext($str);
+            $token = null;
+            if ($this->context !== 'php') {
+                $token = $this->extractOtherContext($str);
 
-                    $str = substr($str, strlen($token['match']));
+                $str = substr($str, strlen($token['match']));
 
-                    $tokens = array_merge($tokens, $token['tokens']);
-
-                    if (empty($str)) {
-                        break;
-                    }
+                foreach ($token['tokens'] as $tok) {
+                    $tokens[] = $tok;
+                    $ctokens++;
                 }
 
-                $type = key($rx);
-
-                if (preg_match($item, $str, $match)) {
-                    $token = $this->token($type, $match, $previous);
-
-                    $str = substr($str, strlen($token['match']));
-
-                    $tokens = array_merge($tokens, $token['tokens']);
-
-                    if (empty($str)) {
-                        break;
-                    }
-
-                    foreach ($token['tokens'] as $t) {
-                        if ($t['type'] !== Token::TOKEN_WHITESPACE) {
-                            $previous = $t;
-                        }
-                    }
-
-                    reset($rx);
-                } else {
-                    next($rx);
+                if (empty($str)) {
+                    break;
                 }
             }
 
-            if (!empty($str)) {
-                reset($rx);
+            foreach ($rx as $type => $regex) {
+                if (preg_match($regex, $str, $match)) {
+                    $token = $this->token($type, $match, $previous);
+                    break;
+                }
+            }
 
+            if (isset($token)) {
+                $str = substr($str, strlen($token['match']));
+
+                foreach ($token['tokens'] as $tok) {
+                    $tokens[] = $tok;
+                    $ctokens++;
+                }
+
+                if (empty($str)) {
+                    break;
+                }
+
+                $itokens = $ctokens;
+                while ($itokens--) {
+                    if ($tokens[$itokens]['type'] !== Token::TOKEN_WHITESPACE) {
+                        $previous = &$tokens[$itokens];
+                        break;
+                    }
+                };
+            } elseif (!empty($str)) {
                 $tokens[] = ['type' => 'unknown', 'value' => $str[0]];
+                $ctokens++;
 
                 $str = substr($str, 1);
             }
