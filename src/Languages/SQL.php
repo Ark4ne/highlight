@@ -348,7 +348,9 @@ class SQL implements LanguageInterface
             case self::FORMAT_COMPRESS:
                 $formatted = [];
                 foreach ($tokens as $token) {
-                    if ($token['type'] == Token::TOKEN_WHITESPACE
+                    if ($token['type'] == Token::TOKEN_KEYWORD) {
+                        $token['value'] = preg_replace('/\s+/', ' ', $token['value']);
+                    } elseif ($token['type'] == Token::TOKEN_WHITESPACE
                         || $token['type'] == Token::TOKEN_COMMENT
                         || $token['type'] == Token::TOKEN_BLOCK_COMMENT) {
                         continue;
@@ -372,71 +374,14 @@ class SQL implements LanguageInterface
                 return $formatted;
             case self::FORMAT_NESTED:
             case self::FORMAT_EXPAND:
-                $tokens = array_values(array_filter($tokens, function ($token) {
-                    return $token['type'] !== Token::TOKEN_WHITESPACE;
-                }));
-
-                $indent = 0;
-
-                $formatted = [];
-
-                $prev = null;
-                $next = null;
-
-                // TODO wrapping in parenthesis
-
-                foreach ($tokens as $idx => $token) {
-                    $next = isset($tokens[$idx + 1]) ? $tokens[$idx + 1] : null;
-
-                    if ($indent && $this->requireIndentDec($token, $style)) {
-                        $indent--;
+                $toks = [];
+                foreach ($tokens as $token) {
+                    if ($token['type'] !== Token::TOKEN_WHITESPACE) {
+                        $toks[] = $token;
                     }
-
-                    if ($prev && $this->requireLnBefore($token, $style)) {
-                        $formatted = $this->ln($formatted);
-                        if ($indent && $this->requireIndent($token, $style)) {
-                            $formatted[] = ['type' => 'indent', 'value' => str_repeat(' ', 4 * $indent)];
-                        }
-                    }
-                    if ($prev && $this->canHasSpaceAfter($prev) && $this->canHasSpaceBefore($token)) {
-                        $formatted[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => ' '];
-                    }
-
-                    $formatted[] = $token;
-
-                    if ($token['value'] === $this->computedDelimiter) {
-                        $formatted = $this->ln($formatted);
-                        $indent = 0;
-                        $prev = $token;
-                        continue;
-                    }
-
-                    if ($next && $this->canHasSpaceBefore($next) && $this->canHasSpaceAfter($token)) {
-                        $formatted[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => ' '];
-                    }
-
-                    if ($this->requireIndentInc($token, $style)) {
-                        $indent++;
-                    }
-                    if ($next && $this->requireLnAfter($token, $style)) {
-                        $formatted = $this->ln($formatted);
-                        if ($this->requireIndent($token, $style)) {
-                            $formatted[] = ['type' => 'indent', 'value' => str_repeat(' ', 4 * $indent)];
-                        }
-                    }
-
-                    $prev = $token;
                 }
 
-                $formatted = $this->removeChainedWhitespace($formatted);
-
-                return $this->specialsTokenToWhitespace($formatted);
-            /*
-            case self::FORMAT_NESTED:
-            case self::FORMAT_EXPAND:
-                $tokens = array_filter($tokens, function ($token) {
-                    return $token['type'] !== Token::TOKEN_WHITESPACE;
-                });;
+                $tokens = $toks;
                 $formatted = [];
                 $indent = 0;
                 $indents = [];
@@ -445,9 +390,16 @@ class SQL implements LanguageInterface
                     : 4;
                 $nextIndent = false;
 
+                $prev = null;
+                $next = null;
+
                 foreach ($tokens as $idx => $token) {
+                    $prev = isset($tokens[$idx - 1]) ? $tokens[$idx - 1] : null;
+                    $next = isset($tokens[$idx + 1]) ? $tokens[$idx + 1] : null;
+
                     switch ($token['type']) {
                         case Token::TOKEN_KEYWORD:
+                            $token['value'] = preg_replace('/\s+/', ' ', $token['value']);
                             if ($token['value'] == 'END') {
                                 do {
                                     $indent && $indent--;
@@ -458,15 +410,14 @@ class SQL implements LanguageInterface
                                 && !(
                                     ($upper = strtoupper($token['value']))
                                     && ($upper == 'UPDATE' || $upper == 'DELETE')
-                                    && ($prev = (isset($tokens[$idx - 1]) ? $tokens[$idx - 1] : null))
-                                    && $prev['type'] == Token::TOKEN_KEYWORD
+                                    && $prev && $prev['type'] == Token::TOKEN_KEYWORD
                                 )
                             ) {
                                 $formatted = $this->ln($formatted);
                                 $nextIndent = true;
                                 $indent && $indent--;
                                 array_pop($indents);
-                            } elseif (preg_match('~^(' . self::_x_keywords_ln . ')~i', $token['value'])) {
+                            } elseif ($this->tokenIs(self::_x_keywords_ln, $token)) {
                                 $formatted = $this->ln($formatted);
                                 $nextIndent = true;
                             }
@@ -491,30 +442,21 @@ class SQL implements LanguageInterface
                         $nextIndent = false;
                     }
 
+                    if ($prev && $this->canHasSpaceAfter($prev) && $this->canHasSpaceBefore($token)) {
+                        $formatted[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => ' '];
+                    }
+
                     $formatted[] = $token;
 
                     switch ($token['type']) {
-                        case Token::TOKEN_FUNCTION:
-                            if (($next = (isset($tokens[$idx + 1]) ? $tokens[$idx + 1] : null)) && !($next['value'] == '(')) {
-                                $formatted[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => ' '];
-                            }
-                            break;
                         case Token::TOKEN_KEYWORD:
-                            if (preg_match('~^(' . self::_x_keywords_top . ')~i', $token['value'])) {
+                            if ($this->tokenIs(self::_x_keywords_top, $token)) {
                                 if ($style == self::FORMAT_EXPAND) {
                                     $formatted = $this->ln($formatted);
                                     $nextIndent = true;
-                                } else {
-                                    $formatted[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => ' '];
                                 }
                                 $indent++;
                                 $indents[] = $token['value'];
-                            } elseif (($next = (isset($tokens[$idx + 1]) ? $tokens[$idx + 1] : null))
-                                && !($next['value'] == ','
-                                    || $next['value'] == ')'
-                                    || $next['value'] == '.'
-                                    || $next['value'] == ';')) {
-                                $formatted[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => ' '];
                             }
                             break;
                         case Token::TOKEN_COMMENT:
@@ -587,20 +529,21 @@ class SQL implements LanguageInterface
                                     }
                                     break;
                                 case ',':
-                                    switch (isset($indents[count($indents) - 1]) ? $indents[count($indents) - 1] : null) {
+                                    $cindent = count($indents);
+                                    switch (isset($indents[$cindent - 1]) ? $indents[$cindent - 1] : null) {
                                         case 'indent':
                                         default:
                                             if ($style == self::FORMAT_EXPAND
-                                                && ($next = (isset($tokens[$idx + 1]) ? $tokens[$idx + 1] : null))
-                                                && !($next['type'] == Token::TOKEN_NUMBER
+                                                && $next && !(
+                                                    $next['type'] == Token::TOKEN_NUMBER
                                                     || $next['type'] == Token::TOKEN_STRING
                                                     || $next['type'] == Token::TOKEN_COMMENT)) {
                                                 $formatted = $this->ln($formatted);
                                                 $nextIndent = true;
                                                 break;
                                             } elseif ($style == self::FORMAT_NESTED
-                                                && ($next = (isset($tokens[$idx + 1]) ? $tokens[$idx + 1] : null))
-                                                && !($next['type'] == Token::TOKEN_NUMBER
+                                                && $next && !(
+                                                    $next['type'] == Token::TOKEN_NUMBER
                                                     || $next['type'] == Token::TOKEN_STRING
                                                     || $next['type'] == Token::TOKEN_COMMENT)) {
                                                 for ($jdx = $idx - 1; isset($tokens[$jdx]); $jdx--) {
@@ -609,124 +552,30 @@ class SQL implements LanguageInterface
                                                         break;
                                                     }
                                                     if ($tokens[$jdx]['type'] == Token::TOKEN_KEYWORD
-                                                        && !preg_match('~^(' . self::_x_keywords_ln . ')~i', $tokens[$jdx]['value'])) {
+                                                        && !$this->tokenIs(self::_x_keywords_ln, $tokens[$jdx])) {
                                                         $formatted = $this->ln($formatted);
                                                         $nextIndent = true;
                                                         break 2;
                                                     }
                                                 }
                                             }
-                                        case 'inline':
-                                            $formatted[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => ' '];
                                     }
                                     break;
-                                case ')':
-                                default:
-                                    if (($next = (isset($tokens[$idx + 1]) ? $tokens[$idx + 1] : null))
-                                        && !($next['value'] == ','
-                                            || $next['value'] == ')'
-                                            || $next['value'] == '.'
-                                            || $next['value'] == ';')) {
-                                        $formatted[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => ' '];
-                                    }
                             }
                             break;
-                        default:
-                            if (($next = (isset($tokens[$idx + 1]) ? $tokens[$idx + 1] : null))
-                                && !($next['value'] == ','
-                                    || $next['value'] == ')'
-                                    || $next['value'] == '.'
-                                    || $next['value'] == ';')) {
-                                $formatted[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => ' '];
-                            }
                     }
                 }
                 return $formatted;
                 break;
-            /**/
             case self::FORMAT_NONE:
             default:
                 return $tokens;
         }
     }
 
-    private function requireLnBefore($token, $style)
+    private function tokenIs($rx, $token)
     {
-        if ($token['type'] == Token::TOKEN_KEYWORD) {
-            if (preg_match('~^(' . self::_x_keywords_ln . ')~i', $token['value'])) {
-                return true;
-            }
-        } elseif ($style == self::FORMAT_EXPAND && $token['value'] == ')') {
-            return true;
-        }
-
-        return false;
-    }
-
-    private function requireLnAfter($token, $style)
-    {
-        if ($token['type'] == Token::TOKEN_KEYWORD) {
-            if (preg_match('~^(' . self::_x_keywords_top . ')~i', $token['value'])) {
-                return $style == self::FORMAT_EXPAND;
-            }
-        } elseif ($token['type'] == Token::TOKEN_COMMENT) {
-            return true;
-        } elseif ($style == self::FORMAT_EXPAND) {
-            if ($token['value'] == '(') {
-                return true;
-            } elseif ($token['value'] == ',') {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function requireIndent($token, $style)
-    {
-        if ($token['type'] == Token::TOKEN_KEYWORD) {
-            if (preg_match('~^(' . self::_x_keywords_ln . ')~i', $token['value'])) {
-                return true;
-            }
-        } elseif ($token['type'] == Token::TOKEN_COMMENT) {
-            return true;
-        } elseif ($style == self::FORMAT_EXPAND) {
-            if ($token['value'] == '(') {
-                return true;
-            } elseif ($token['value'] == ')') {
-                return true;
-            } elseif ($token['value'] == ',') {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function requireIndentInc($token, $style)
-    {
-        if ($token['type'] == Token::TOKEN_KEYWORD) {
-            if (preg_match('~^(' . self::_x_keywords_top . ')~i', $token['value'])) {
-                return true;
-            }
-        } elseif ($style == self::FORMAT_EXPAND && $token['value'] == '(') {
-            return true;
-        }
-
-        return false;
-    }
-
-    private function requireIndentDec($token, $style)
-    {
-        if ($token['type'] == Token::TOKEN_KEYWORD) {
-            if (preg_match('~^(' . self::_x_keywords_top . ')~i', $token['value'])) {
-                return true;
-            }
-        } elseif ($style == self::FORMAT_EXPAND && $token['value'] == ')') {
-            return true;
-        }
-
-        return false;
+        return preg_match('~^(' . $rx . ')~i', $token['value']);
     }
 
     private function canHasSpaceBefore($token)
@@ -754,39 +603,6 @@ class SQL implements LanguageInterface
         }
 
         return true;
-    }
-
-    private function removeChainedWhitespace($tokens)
-    {
-        $prev = null;
-        foreach ($tokens as $i => $token) {
-            if ($token['type'] === Token::TOKEN_WHITESPACE
-                && $prev && (
-                    $prev['type'] === Token::TOKEN_WHITESPACE
-                    || $prev['type'] === 'ln'
-                    || $prev['type'] === 'indent'
-                )
-            ) {
-                unset($tokens[$i]);
-            }
-            $prev = $token;
-        }
-
-        return array_values($tokens);
-    }
-
-    private function specialsTokenToWhitespace($tokens)
-    {
-        foreach ($tokens as $i => $token) {
-            switch ($token['type']) {
-                case 'ln':
-                case 'indent':
-                    $tokens[$i]['type'] = Token::TOKEN_WHITESPACE;
-                    break;
-            }
-        }
-
-        return $tokens;
     }
 
     private function ln(array $_tokens)
