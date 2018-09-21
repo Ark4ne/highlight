@@ -71,6 +71,9 @@ class Shell implements RenderInterface
         if (isset($options['colors'])) {
             $this->hasColors = true;
             switch ($options['colors']) {
+                case self::COLOR_NONE:
+                    $this->colorsLevel = [];
+                    break;
                 case self::COLOR_BASIC:
                     $this->colorsLevel = self::$stylesBasic;
                     break;
