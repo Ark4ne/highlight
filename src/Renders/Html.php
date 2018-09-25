@@ -38,7 +38,11 @@ class Html implements RenderInterface
             . 'line-height:1.3;'
             . 'background-color: #2b2b2b;'
             . 'color:#a9b7c6;'
-            . 'margin:0',
+            . 'margin:0;'
+            . 'padding:0;'
+            . 'display:block;'
+            . 'overflow:auto;'
+            . 'white-space:pre!important;',
 
         Token::TOKEN_NAMESPACE     => 'color:#a9b7c6',
         Token::TOKEN_VARIABLE      => 'color:#9876aa',
