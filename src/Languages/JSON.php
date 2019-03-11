@@ -22,7 +22,7 @@ class JSON implements LanguageInterface
 
     const X_STRING = '^"[\W\w]*';
 
-    const X_PROPERTY = '^:';
+    const X_PROPERTY = '^(\s*):';
 
     const RX = [
         'whitespaces' => '~' . self::X_WHITESPACES . '~',
@@ -66,9 +66,15 @@ class JSON implements LanguageInterface
             case 'property':
                 $previous['type'] = Token::TOKEN_VARIABLE;
 
+                if (isset($match[1])) {
+                    $tokens[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => $match[1]];
+                }
+
+                $tokens[] = ['type' => Token::TOKEN_PUNCTUATION, 'value' => ':'];
+
                 return [
                     'match'  => $match[0],
-                    'tokens' => [['type' => Token::TOKEN_PUNCTUATION, 'value' => $match[0]]],
+                    'tokens' => $tokens,
                 ];
             case 'number':
                 return [
@@ -116,8 +122,8 @@ class JSON implements LanguageInterface
         }
 
         $tokens = [];
-        $previous = null;
         $ctokens = 0;
+        $previous = null;
 
         $rx = self::RX;
 
@@ -127,30 +133,24 @@ class JSON implements LanguageInterface
             foreach ($rx as $type => $regex) {
                 if (preg_match($regex, $str, $match)) {
                     $token = $this->token($type, $match, $previous);
+
+                    if ($token['match'] != '') {
+                        $str = substr($str, strlen($token['match']));
+                    }
+
+                    foreach ($token['tokens'] as $tok) {
+                        $tokens[] = $tok;
+                        if ($tok['type'] !== Token::TOKEN_WHITESPACE) {
+                            $previous = &$tokens[$ctokens];
+                            break;
+                        }
+                        $ctokens++;
+                    }
                     break;
                 }
             }
 
-            if (isset($token)) {
-                $str = substr($str, strlen($token['match']));
-
-                foreach ($token['tokens'] as $tok) {
-                    $tokens[] = $tok;
-                    $ctokens++;
-                }
-
-                if (empty($str)) {
-                    break;
-                }
-
-                $itokens = $ctokens;
-                while ($itokens--) {
-                    if ($tokens[$itokens]['type'] !== Token::TOKEN_WHITESPACE) {
-                        $previous = &$tokens[$itokens];
-                        break;
-                    }
-                };
-            } elseif (!empty($str)) {
+            if (!empty($str)) {
                 $tokens[] = ['type' => 'unknown', 'value' => $str[0]];
                 $ctokens++;
 

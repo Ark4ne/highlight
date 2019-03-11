@@ -13,9 +13,10 @@ use PHPUnit\Framework\TestCase;
  */
 class PHPTest extends TestCase
 {
-    public function dataTestSimple(){
+    public function dataTestSimple()
+    {
         $datas = [
-            '$a = 123;'         => [
+            '$a = 123;' => [
                 [Token::TOKEN_VARIABLE, '$a'],
                 [Token::TOKEN_WHITESPACE, " "],
                 [Token::TOKEN_PUNCTUATION, "="],
@@ -23,7 +24,7 @@ class PHPTest extends TestCase
                 [Token::TOKEN_NUMBER, "123"],
                 [Token::TOKEN_PUNCTUATION, ";"],
             ],
-            '$a = "ab\\"c";'    => [
+            '$a = "ab\\"c";' => [
                 [Token::TOKEN_VARIABLE, '$a'],
                 [Token::TOKEN_WHITESPACE, " "],
                 [Token::TOKEN_PUNCTUATION, "="],
@@ -41,7 +42,7 @@ class PHPTest extends TestCase
                 [Token::TOKEN_PUNCTUATION, ";"],
 
             ],
-            '$a = [];'          => [
+            '$a = [];' => [
                 [Token::TOKEN_VARIABLE, '$a'],
                 [Token::TOKEN_WHITESPACE, " "],
                 [Token::TOKEN_PUNCTUATION, "="],
@@ -51,7 +52,7 @@ class PHPTest extends TestCase
                 [Token::TOKEN_PUNCTUATION, ";"],
 
             ],
-            '$a ();'            => [
+            '$a ();' => [
                 [Token::TOKEN_VARIABLE, '$a'],
                 [Token::TOKEN_WHITESPACE, " "],
                 [Token::TOKEN_PUNCTUATION, "("],
@@ -59,7 +60,7 @@ class PHPTest extends TestCase
                 [Token::TOKEN_PUNCTUATION, ";"],
 
             ],
-            'a ();'             => [
+            'a ();' => [
                 [Token::TOKEN_WORD, 'a'],
                 [Token::TOKEN_WHITESPACE, " "],
                 [Token::TOKEN_PUNCTUATION, "("],
@@ -67,7 +68,7 @@ class PHPTest extends TestCase
                 [Token::TOKEN_PUNCTUATION, ";"],
 
             ],
-            'Abc\a ();'         => [
+            'Abc\a ();' => [
                 [Token::TOKEN_NAMESPACE, 'Abc\\'],
                 [Token::TOKEN_WORD, 'a'],
                 [Token::TOKEN_WHITESPACE, " "],
@@ -76,7 +77,7 @@ class PHPTest extends TestCase
                 [Token::TOKEN_PUNCTUATION, ";"],
 
             ],
-            '$a -> a ();'       => [
+            '$a -> a ();' => [
                 [Token::TOKEN_VARIABLE, '$a'],
                 [Token::TOKEN_WHITESPACE, " "],
                 [Token::TOKEN_PUNCTUATION, "->"],
@@ -88,7 +89,7 @@ class PHPTest extends TestCase
                 [Token::TOKEN_PUNCTUATION, ";"],
 
             ],
-            '$a = new Abc\a;'   => [
+            '$a = new Abc\a;' => [
                 [Token::TOKEN_VARIABLE, '$a'],
                 [Token::TOKEN_WHITESPACE, " "],
                 [Token::TOKEN_PUNCTUATION, "="],
@@ -115,7 +116,7 @@ class PHPTest extends TestCase
             ],
             '$a = <<<EOF
 Heredoc string
-EOF;'                  => [
+EOF;' => [
                 [Token::TOKEN_VARIABLE, '$a'],
                 [Token::TOKEN_WHITESPACE, " "],
                 [Token::TOKEN_PUNCTUATION, "="],
@@ -146,7 +147,7 @@ EOF;'                  => [
                 [Token::TOKEN_VARIABLE, "__FILE__"],
                 [Token::TOKEN_PUNCTUATION, ";"],
             ],
-            '$a = A\B::$c;'            => [
+            '$a = A\B::$c;' => [
                 [Token::TOKEN_VARIABLE, '$a'],
                 [Token::TOKEN_WHITESPACE, " "],
                 [Token::TOKEN_PUNCTUATION, "="],
@@ -168,7 +169,7 @@ EOF;'                  => [
                 [Token::TOKEN_PUNCTUATION, ";"],
             ],
             '// a is true.
-$a = true;'      => [
+$a = true;' => [
                 [Token::TOKEN_COMMENT, '// a is true.'],
                 [Token::TOKEN_WHITESPACE, "\n"],
                 [Token::TOKEN_VARIABLE, '$a'],
@@ -212,22 +213,22 @@ $a = true;'      => [
         $this->assertTokenize('<?php ' . $str . ' ?>', array_merge(
             [
                 [
-                    'type'  => Token::TOKEN_KEYWORD,
+                    'type' => Token::TOKEN_KEYWORD,
                     'value' => '<?php',
                 ], [
-                    'type'  => Token::TOKEN_WHITESPACE,
-                    'value' => ' ',
-                ],
+                'type' => Token::TOKEN_WHITESPACE,
+                'value' => ' ',
+            ],
             ],
             $tokens,
             [
                 [
-                    'type'  => Token::TOKEN_WHITESPACE,
+                    'type' => Token::TOKEN_WHITESPACE,
                     'value' => ' ',
                 ], [
-                    'type'  => Token::TOKEN_KEYWORD,
-                    'value' => '?>',
-                ],
+                'type' => Token::TOKEN_KEYWORD,
+                'value' => '?>',
+            ],
             ]
         ));
     }
@@ -438,6 +439,64 @@ echo $this->view->start()->render("front/index", "index")->finish()->getContent(
         ];
 
         $this->assertTokenize($src, $this->expandTokens($tokens));
+    }
+
+    /**
+     * for profile only
+     */
+    public function __testHugeFile()
+    {
+        $file = file_get_contents(__DIR__ . '/../vendor/phpunit/phpunit/src/Framework/TestCase.php');
+
+        $start = microtime(true);
+        $tokens = (new PHP)->tokenize($file);
+        $time = microtime(true) - $start;
+
+        $profiles = PHP::$profiles;
+
+        foreach ($profiles as $type => &$profile) {
+            $profile['token op/s'] = $profile['in'] ? $profile['in'] / $profile['time'] : 'n/a';
+            $profile['preg_y op/s'] = $profile['in'] ? $profile['in'] / ($profile['preg_y']) : 'n/a';
+            $profile['preg_n op/s'] = $profile['out'] ? $profile['out'] / ($profile['preg_n']) : 'n/a';
+            $profile['preg op/s'] = ($profile['in'] + $profile['out']) ? ($profile['in'] + $profile['out']) / ($profile['preg_y'] + $profile['preg_n']) : 'n/a';
+        }
+
+        $max = [];
+
+        foreach ($profiles as $type => &$profile) {
+            foreach ($profile as $name => &$value) {
+                if (is_numeric($value)) {
+                    $value = number_format($value, is_int($value) ? 0 : 4, '.', ' ');
+                }
+
+                if (isset($max[$name])) {
+                    $max[$name] = max(strlen($value), $max[$name]);
+                } else {
+                    $max[$name] = strlen($value);
+                }
+            }
+        }
+
+        foreach ($profiles as $type => $profile) {
+            echo "- " . str_pad($type . ' ', array_sum($max) + (count($max) * 2) - 2, '-') . PHP_EOL;
+
+            foreach (array_keys($profile) as $name) {
+                echo "  " . str_pad($name, $max[$name]);
+            }
+            echo PHP_EOL;
+            foreach ($profile as $name => $value) {
+                echo "  " . str_pad($value, $max[$name]);
+            }
+            echo PHP_EOL;
+        }
+
+        $acceptable = 0.15; // PHP 7 : 75Kb file , max 150ms parsing
+
+        if (PHP_MAJOR_VERSION == 5) {
+            $acceptable = 0.25; // PHP 5 : 75Kb file , max 250ms parsing
+        }
+
+        $this->assertTrue($time < $acceptable, $time);
     }
 
     private function assertTokenize($str, $tokens)

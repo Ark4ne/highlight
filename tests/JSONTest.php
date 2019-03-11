@@ -30,7 +30,9 @@ class JSONTest extends TestCase
         "prop1": "zer",
         "prop2": "tyu",
         "prop3": "iop"
-    }
+    },
+    "dir\"ty
+    key":null
 }' => [
                 [Token::TOKEN_PUNCTUATION, '{'],
                 [Token::TOKEN_WHITESPACE, "\n    "],
@@ -101,6 +103,12 @@ class JSONTest extends TestCase
                 [Token::TOKEN_STRING, '"iop"'],
                 [Token::TOKEN_WHITESPACE, "\n    "],
                 [Token::TOKEN_PUNCTUATION, '}'],
+                [Token::TOKEN_PUNCTUATION, ','],
+                [Token::TOKEN_WHITESPACE, "\n    "],
+                [Token::TOKEN_VARIABLE, '"dir\"ty
+    key"'],
+                [Token::TOKEN_PUNCTUATION, ':'],
+                [Token::TOKEN_KEYWORD, 'null'],
                 [Token::TOKEN_WHITESPACE, "\n"],
                 [Token::TOKEN_PUNCTUATION, '}'],
             ]

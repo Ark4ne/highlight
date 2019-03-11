@@ -16,7 +16,7 @@ class PHP implements LanguageInterface
 
     const _x_words = '([a-zA-Z_]\w*)';
 
-    const _x_identifier = '(\\\\?' . self::_x_words . '(?:\\\\?' . self::_x_words . ')*)';
+    const _x_identifier = '(\\\\?' . self::_x_words . '(?:\\\\' . self::_x_words . ')*)';
 
     const X_WHITESPACE = '^' . self::_x_whitespaces;
 
@@ -24,7 +24,7 @@ class PHP implements LanguageInterface
 
     const X_TAG_CLOSE = '^(\?>)';
 
-    const X_KEYWORDS = '^((?:a(?:bstract|nd|rray|s))|(?:c(?:a(?:llable|se|tch)|l(?:ass|one)|on(?:st|tinue)))|(?:d(?:e(?:clare|fault)|ie|o))|(?:e(?:cho|lse(?:if)?|mpty|nd(?:declare|for(?:each)?|if|switch|while)|val|x(?:it|tends)))|(?:f(?:inal|or(?:each)?|alse|unction))|(?:g(?:lobal|oto))|(?:i(?:f|mplements|n(?:clude(?:_once)?|st(?:anceof|eadof)|terface)|sset))|(?:n(?:amespace|ew|ull))|(?:p(?:r(?:i(?:nt|vate)|otected)|arent|ublic))|(?:re(?:quire(?:_once)?|turn))|(?:s(?:tatic|elf|witch))|(?:t(?:hrow|r(?:ait|ue|y)))|(?:u(?:nset|se))|(?:__halt_compiler|break|list|(?:x)?or|var|while))\b';
+    const X_KEYWORDS = '^(a(?:bstract|nd|rray|s)|c(?:a(?:llable|se|tch)|l(?:ass|one)|on(?:st|tinue))|d(?:e(?:clare|fault)|ie|o)|e(?:cho|lse(?:if)?|mpty|nd(?:declare|for(?:each)?|if|switch|while)|val|x(?:it|tends))|f(?:inal(?:ly)?|or(?:each)?|alse|unction)|g(?:lobal|oto)|i(?:f|mplements|n(?:clude(?:_once)?|st(?:anceof|eadof)|terface)|sset)|n(?:amespace|ew|ull)|p(?:r(?:i(?:nt|vate)|otected)|arent|ublic)|re(?:quire(?:_once)?|turn)|s(?:tatic|elf|witch)|t(?:hrow|r(?:ait|ue|y))|u(?:nset|se)|__halt_compiler|break|list|xor|or|var|while)\b';
 
     const X_PUNCTUATIONS = '^([\[\]{}()<>=|&.,:;!/*+-])';
 
@@ -51,7 +51,7 @@ class PHP implements LanguageInterface
         'whitespace'  => '~' . self::X_WHITESPACE . '~',
         'tag_open'    => '~' . self::X_TAG_OPEN . '~',
         'tag_close'   => '~' . self::X_TAG_CLOSE . '~',
-        'method_d'    => '~' . self::X_METHOD_DECLARATION . '~',
+        'method_def'  => '~' . self::X_METHOD_DECLARATION . '~',
         'keywords'    => '~' . self::X_KEYWORDS . '~i',
         'function'    => '~' . self::X_FUNCTIONS . '~',
         'method'      => '~' . self::X_METHOD_CALL . '~',
@@ -70,6 +70,8 @@ class PHP implements LanguageInterface
 
     private $options = [];
 
+    //public static $profiles = [];
+
     public function __construct(array $options = [])
     {
         $this->options = $options;
@@ -79,7 +81,14 @@ class PHP implements LanguageInterface
             : 'html';
     }
 
-    private function token($type, $match, $previous = null)
+    /**
+     * @param string     $type
+     * @param array      $match
+     * @param array|null $previous
+     *
+     * @return array
+     */
+    private function token($type, $match, &$previous = null)
     {
         switch ($type) {
             case 'whitespace':
@@ -174,7 +183,7 @@ class PHP implements LanguageInterface
                     'match'  => $matched,
                     'tokens' => $tokens,
                 ];
-            case 'method_d':
+            case 'method_def':
                 $matched = $match[0];
 
                 $tokens[] = [
@@ -299,11 +308,9 @@ class PHP implements LanguageInterface
                 do {
                     $next = strpos($str, $quote, $next + $qlen);
                 } while (
-                    $next !== false && $next > 1
-                    && (
-                        // "\" string escape
+                    $next !== false && $next > 1 &&
+                    // string escape : 'I\'m.'
                     ($str[$next - 1] == '\\' && $str[$next - 2] != '\\')
-                    )
                 );
 
                 if ($next === false) {
@@ -397,14 +404,15 @@ class PHP implements LanguageInterface
         $ctokens = 0;
         $previous = null;
 
-        $rx = self::RX;
-
         while (!empty($str)) {
             $token = null;
+
             if ($this->context !== 'php') {
                 $token = $this->extractOtherContext($str);
 
-                $str = substr($str, strlen($token['match']));
+                if ($token['match'] != '') {
+                    $str = substr($str, strlen($token['match']));
+                }
 
                 foreach ($token['tokens'] as $tok) {
                     $tokens[] = $tok;
@@ -416,33 +424,40 @@ class PHP implements LanguageInterface
                 }
             }
 
-            foreach ($rx as $type => $regex) {
+            foreach (self::RX as $type => $regex) {
+                //if (!isset(self::$profiles[$type])) {
+                //    self::$profiles[$type] = ['in' => 0, 'out' => 0, 'time' => 0, 'preg_y' => 0, 'preg_n' => 0];
+                //}
+
+                //$preg = microtime(true);
                 if (preg_match($regex, $str, $match)) {
+                    //self::$profiles[$type]['preg_y'] += microtime(true) - $preg;
+                    //self::$profiles[$type]['in']++;
+
+                    //$start = microtime(true);
                     $token = $this->token($type, $match, $previous);
+                    //self::$profiles[$type]['time'] += microtime(true) - $start;
+
+                    if ($token['match'] != '') {
+                        $str = substr($str, strlen($token['match']));
+                    }
+
+                    foreach ($token['tokens'] as $tok) {
+                        $tokens[] = $tok;
+                        if ($tok['type'] !== Token::TOKEN_WHITESPACE) {
+                            $previous = &$tokens[$ctokens];
+                        }
+                        $ctokens++;
+                    }
+
                     break;
                 }
+
+                //self::$profiles[$type]['preg_n'] += microtime(true) - $preg;
+                //self::$profiles[$type]['out']++;
             }
 
-            if (isset($token)) {
-                $str = substr($str, strlen($token['match']));
-
-                foreach ($token['tokens'] as $tok) {
-                    $tokens[] = $tok;
-                    $ctokens++;
-                }
-
-                if (empty($str)) {
-                    break;
-                }
-
-                $itokens = $ctokens;
-                while ($itokens--) {
-                    if ($tokens[$itokens]['type'] !== Token::TOKEN_WHITESPACE) {
-                        $previous = &$tokens[$itokens];
-                        break;
-                    }
-                };
-            } elseif (!empty($str)) {
+            if (!isset($token)) {
                 $tokens[] = ['type' => 'unknown', 'value' => $str[0]];
                 $ctokens++;
 

@@ -270,8 +270,8 @@ class SQL implements LanguageInterface
         }
 
         $tokens = [];
-        $previous = null;
         $ctokens = 0;
+        $previous = null;
 
         $rx = ['punc_delimiter' => $this->rxDelimiter] + self::RX;
 
@@ -281,32 +281,25 @@ class SQL implements LanguageInterface
             foreach ($rx as $type => $regex) {
                 if (preg_match($regex, $str, $match)) {
                     $token = $this->token($type, $match, $previous);
+
+                    if ($token['match'] != '') {
+                        $str = substr($str, strlen($token['match']));
+                    }
+
+                    foreach ($token['tokens'] as $tok) {
+                        $tokens[] = $tok;
+                        if ($tok['type'] !== Token::TOKEN_WHITESPACE) {
+                            $previous = &$tokens[$ctokens];
+                        }
+                        $ctokens++;
+                    }
+
+                    $rx['punc_delimiter'] = $this->rxDelimiter;
                     break;
                 }
             }
 
-            if (isset($token)) {
-                $str = substr($str, strlen($token['match']));
-
-                foreach ($token['tokens'] as $tok) {
-                    $tokens[] = $tok;
-                    $ctokens++;
-                }
-
-                if (empty($str)) {
-                    break;
-                }
-
-                $itokens = $ctokens;
-                while ($itokens--) {
-                    if ($tokens[$itokens]['type'] !== Token::TOKEN_WHITESPACE) {
-                        $previous = &$tokens[$itokens];
-                        break;
-                    }
-                };
-
-                $rx['punc_delimiter'] = $this->rxDelimiter;
-            } elseif (!empty($str)) {
+            if (!empty($str)) {
                 $tokens[] = ['type' => 'unknown', 'value' => $str[0]];
                 $ctokens++;
 
