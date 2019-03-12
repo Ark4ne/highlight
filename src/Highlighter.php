@@ -2,6 +2,8 @@
 
 namespace Highlight;
 
+use Psr\SimpleCache\CacheInterface;
+
 /**
  * Class Highlighter
  *
@@ -15,10 +17,22 @@ class Highlighter
     /** @var \Highlight\RenderInterface */
     private $render;
 
-    public function __construct(LanguageInterface $tokenizer, RenderInterface $render)
-    {
+    /** @var \Psr\SimpleCache\CacheInterface|null */
+    private $cache;
+
+    /** @var string */
+    private $key;
+
+    public function __construct(
+        LanguageInterface $tokenizer,
+        RenderInterface $render,
+        CacheInterface $cache = null
+    ) {
         $this->tokenizer = $tokenizer;
         $this->render = $render;
+        $this->cache = $cache;
+
+        $this->key = get_class($tokenizer);
     }
 
     /**
@@ -28,25 +42,55 @@ class Highlighter
      */
     public function highlight($str)
     {
-        return
-            $this->render->render(
-                $this->tokenizer->format(
-                    $this->tokenizer->tokenize(
-                        $str
-                    )
-                )
-            );
+        $key = $this->key . md5($str);
+
+        if ($this->cache && $this->cache->has($key)) {
+            $tokens = $this->cache->get($key);
+        } else {
+            $tokens = $this->tokenizer->format($this->tokenizer->tokenize($str));
+
+            if ($this->cache) {
+                $this->cache->set($key, $tokens);
+            }
+        }
+
+        return $this->render->render($tokens);
+    }
+
+
+    /**
+     * @param \string $file
+     *
+     * @return \string
+     */
+    public function highlightFile($file)
+    {
+        $key = $this->key . $file;
+
+        if ($this->cache && $this->cache->has($key)) {
+            $tokens = $this->cache->get($key);
+        } else {
+            $tokens = $this->tokenizer->format($this->tokenizer->tokenize(file_get_contents($file)));
+
+            if ($this->cache) {
+                $this->cache->set($key, $tokens);
+            }
+        }
+
+        return $this->render->render($tokens);
     }
 
     /**
-     * @param \string $tokenizerClass
-     * @param \string $renderClass
+     * @deprecated
+     *
+     * @param LanguageInterface|string $tokenizer
+     * @param RenderInterface|string $render
      * @param array   $options
      *
      * @return \Highlight\Highlighter
      */
-    public static function factory($tokenizerClass, $renderClass, array $options = [])
+    public static function factory($tokenizer, $render, array $options = [])
     {
-        return new self(new $tokenizerClass($options), new $renderClass($options));
+        return Factory::factory($tokenizer, $render, $options);
     }
 }
