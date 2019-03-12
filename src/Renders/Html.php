@@ -74,8 +74,8 @@ class Html implements RenderInterface
 
         $html = '';
 
-        if(empty($this->options['inlineStyle'])){
-            $ctx = uniqid("hl");
+        if (empty($this->options['inlineStyle'])) {
+            $ctx = "hl" . substr(md5(uniqid()), 0, 4) . '_';
             $html = "<style rel='stylesheet'>";
             foreach ($styles as $key => $style) {
                 $html .= ".$ctx$key {{$style}}";
@@ -83,58 +83,80 @@ class Html implements RenderInterface
             $html .= "</style>";
         }
 
-        $str = '';
+        $lines = [];
+        $ldx = 0;
+
+        $line = '';
+
+        $withLineNumber = !empty($this->options['withLineNumber']);
+        $lineSelected = isset($this->options['lineSelected'])
+            ? $this->options['lineSelected']
+            : null;
+
+        $lineNumberStyle = isset($ctx)
+            ? 'class="' . $ctx . 'line_number"'
+            : 'style="' . $styles['line_number'] . '"';
+        $lineSelectedStyle = isset($ctx)
+            ? 'class="' . $ctx . 'line_selected"'
+            : 'style="' . $styles['line_selected'] . '"';
 
         foreach ($tokens as $token) {
-            $token['value'] = htmlspecialchars(str_replace(["\r\n", "\r"], "\n", $token['value']));
+            $value = str_replace(["\r\n", "\r"], "\n", $token['value']);
+
+            $parts = explode("\n", $value);
+            $count = count($parts);
 
             if ($token['type'] == Token::TOKEN_WHITESPACE) {
-                $str .= str_replace(' ', '&nbsp;', $token['value']);
-            } else {
-                $parts = [];
-                $style = '';
-                if (!empty($styles[$token['type']])) {
-                    if (isset($ctx)) {
-                        $style = ' class="' . $ctx . $token['type'] . '"';
-                    } else {
-                        $style = ' style="' . $styles[$token['type']] . '"';
+                foreach ($parts as $idx => $part) {
+                    $line .= str_replace(' ', '&nbsp;', $part);
+                    if ($idx + 1 < $count) {
+                        if ($withLineNumber) {
+                            $line = '<code ' . $lineNumberStyle . '>' . ($ldx + 1) . '</code>' . $line;
+                        }
+                        $lines[$ldx] = $line;
+                        $line = '';
+                        $ldx++;
                     }
                 }
-
-                foreach (explode("\n", $token['value']) as $w) {
-                    $parts[] = '<code' . $style . '>' . $w . '</code>';
-                }
-
-                $str .= implode("\n", $parts);
-            }
-        }
-
-        $lines = explode("\n", $str);
-
-        if (!empty($this->options['withLineNumber'])) {
-            foreach ($lines as $idx => $line) {
-                if (isset($ctx)) {
-                    $lines[$idx] = '<code class="' . $ctx . 'line_number">' . ($idx+1) . '</code>' . $line;
-                } else {
-                    $lines[$idx] = '<code style="' . $styles['line_number'] . '">' . ($idx+1) . '</code>' . $line;
-                }
-            }
-        }
-
-        if(isset($this->options['lineSelected'])){
-            $selected = $this->options['lineSelected']-1;
-            if (isset($ctx)) {
-                $lines[$selected] = '<code class="' . $ctx . 'line_selected">' . $lines[$selected] . '</code>';
             } else {
-                $lines[$selected] = '<code style="' . $styles['line_selected'] . '">' . $lines[$selected] . '</code>';
+                $style = '';
+                if (!empty($styles[$token['type']])) {
+                    $style = isset($ctx)
+                        ? ' class="' . $ctx . $token['type'] . '"'
+                        : ' style="' . $styles[$token['type']] . '"';
+                }
+
+                foreach ($parts as $idx => $part) {
+                    $line .= '<code' . $style . '>' . htmlspecialchars($part) . '</code>';
+                    if ($idx + 1 < $count) {
+                        if ($withLineNumber) {
+                            $line = '<code ' . $lineNumberStyle . '>' . ($ldx + 1) . '</code>' . $line;
+                        }
+                        if ($lineSelected === $ldx) {
+                            $line = '<code ' . $lineSelectedStyle . '>' . ($ldx + 1) . '</code>' . $line;
+                        }
+                        $lines[$ldx] = $line;
+                        $line = '';
+                        $ldx++;
+                    }
+                }
             }
         }
+
+        if ($withLineNumber) {
+            $line = '<code ' . $lineNumberStyle . '>' . ($ldx + 1) . '</code>' . $line;
+        }
+        if ($lineSelected === $ldx) {
+            $line = '<code ' . $lineSelectedStyle . '>' . ($ldx + 1) . '</code>' . $line;
+        }
+
+        $lines[$ldx] = $line;
 
         if (isset($this->options['lineOffset'], $this->options['lineLimit'])) {
-            $lines = array_slice($lines, $this->options['lineOffset'], $this->options['lineLimit']);
+            $lines = array_slice($lines, $this->options['lineOffset'] + 1, $this->options['lineLimit']);
         }
 
-        if(empty($this->options['noPre'])){
+        if (empty($this->options['noPre'])) {
             if (isset($ctx)) {
                 return $html . '<pre class="' . $ctx . 'pre">' . implode("\n", $lines) . '</pre>';
             }
