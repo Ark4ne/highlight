@@ -299,7 +299,7 @@ class SQL implements LanguageInterface
                 }
             }
 
-            if (!empty($str)) {
+            if (!isset($token)) {
                 $tokens[] = ['type' => 'unknown', 'value' => $str[0]];
                 $ctokens++;
 

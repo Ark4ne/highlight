@@ -22,7 +22,7 @@ class JSON implements LanguageInterface
 
     const X_STRING = '^"[\W\w]*';
 
-    const X_PROPERTY = '^(\s*):';
+    const X_PROPERTY = '^:';
 
     const RX = [
         'whitespaces' => '~' . self::X_WHITESPACES . '~',
@@ -66,15 +66,9 @@ class JSON implements LanguageInterface
             case 'property':
                 $previous['type'] = Token::TOKEN_VARIABLE;
 
-                if (isset($match[1])) {
-                    $tokens[] = ['type' => Token::TOKEN_WHITESPACE, 'value' => $match[1]];
-                }
-
-                $tokens[] = ['type' => Token::TOKEN_PUNCTUATION, 'value' => ':'];
-
                 return [
                     'match'  => $match[0],
-                    'tokens' => $tokens,
+                    'tokens' => [['type' => Token::TOKEN_PUNCTUATION, 'value' => $match[0]]],
                 ];
             case 'number':
                 return [
@@ -142,7 +136,6 @@ class JSON implements LanguageInterface
                         $tokens[] = $tok;
                         if ($tok['type'] !== Token::TOKEN_WHITESPACE) {
                             $previous = &$tokens[$ctokens];
-                            break;
                         }
                         $ctokens++;
                     }
@@ -150,7 +143,7 @@ class JSON implements LanguageInterface
                 }
             }
 
-            if (!empty($str)) {
+            if (!isset($token)) {
                 $tokens[] = ['type' => 'unknown', 'value' => $str[0]];
                 $ctokens++;
 
