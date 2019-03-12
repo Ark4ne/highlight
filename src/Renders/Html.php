@@ -84,76 +84,91 @@ class Html implements RenderInterface
         }
 
         $lines = [];
+        $clines = 0;
         $ldx = 0;
 
         $line = '';
 
-        $withLineNumber = !empty($this->options['withLineNumber']);
-        $lineSelected = isset($this->options['lineSelected'])
-            ? $this->options['lineSelected']
-            : null;
+        $withLimit = isset($this->options['lineOffset'], $this->options['lineLimit']);
+        if($withLimit){
+            $offset = $this->options['lineOffset'] + 1;
+            $limit = $this->options['lineLimit'];
+        } else {
+            $offset = 0;
+            $limit = INF;
+        }
 
+        $withLineNumber = !empty($this->options['withLineNumber']);
         $lineNumberStyle = isset($ctx)
             ? 'class="' . $ctx . 'line_number"'
             : 'style="' . $styles['line_number'] . '"';
+
+        $lineSelected = isset($this->options['lineSelected'])
+            ? $this->options['lineSelected']
+            : null;
         $lineSelectedStyle = isset($ctx)
             ? 'class="' . $ctx . 'line_selected"'
             : 'style="' . $styles['line_selected'] . '"';
 
         foreach ($tokens as $token) {
-            $value = str_replace(["\r\n", "\r"], "\n", $token['value']);
+            $isWhiteSpace = $token['type'] == Token::TOKEN_WHITESPACE;
 
+            // prepare value
+            $value = str_replace(["\r\n", "\r"], "\n", $token['value']);
+            // explode lines
             $parts = explode("\n", $value);
             $count = count($parts);
 
-            if ($token['type'] == Token::TOKEN_WHITESPACE) {
-                foreach ($parts as $idx => $part) {
-                    $line .= str_replace(' ', '&nbsp;', $part);
-                    if ($idx + 1 < $count) {
-                        if ($withLineNumber) {
-                            $line = '<code ' . $lineNumberStyle . '>' . ($ldx + 1) . '</code>' . $line;
-                        }
-                        $lines[$ldx] = $line;
-                        $line = '';
-                        $ldx++;
+            // default dom tag style
+            $style = '';
+            if (!empty($styles[$token['type']])) {
+                $style = isset($ctx)
+                    ? ' class="' . $ctx . $token['type'] . '"'
+                    : ' style="' . $styles[$token['type']] . '"';
+            }
+
+            foreach ($parts as $idx => $part) {
+                if ($ldx >= $offset && $limit > $clines) {
+                    if ($isWhiteSpace) {
+                        // if white-space, don't add tag, only spaces
+                        $line .= str_replace(' ', '&nbsp;', $part);
+                    } else {
+                        // add tag with style, encode value
+                        $line .= '<code' . $style . '>' . htmlspecialchars($part) . '</code>';
                     }
-                }
-            } else {
-                $style = '';
-                if (!empty($styles[$token['type']])) {
-                    $style = isset($ctx)
-                        ? ' class="' . $ctx . $token['type'] . '"'
-                        : ' style="' . $styles[$token['type']] . '"';
                 }
 
-                foreach ($parts as $idx => $part) {
-                    $line .= '<code' . $style . '>' . htmlspecialchars($part) . '</code>';
-                    if ($idx + 1 < $count) {
+                // last part must never add a new line.
+                if (($idx + 1) < $count) {
+                    if ($ldx >= $offset && $limit > $clines) {
                         if ($withLineNumber) {
                             $line = '<code ' . $lineNumberStyle . '>' . ($ldx + 1) . '</code>' . $line;
                         }
-                        if ($lineSelected === $ldx) {
-                            $line = '<code ' . $lineSelectedStyle . '>' . ($ldx + 1) . '</code>' . $line;
+                        if ($lineSelected === ($ldx + 1)) {
+                            $line = '<code ' . $lineSelectedStyle . '>' . $line . '</code>';
                         }
-                        $lines[$ldx] = $line;
-                        $line = '';
-                        $ldx++;
+                        $lines[] = $line;
+                        $clines++;
+
+                        if ($clines >= $limit) {
+                            // limit reached, stop the loops
+                            break 2;
+                        }
                     }
+                    $ldx++;
+                    $line = '';
                 }
             }
         }
 
-        if ($withLineNumber) {
-            $line = '<code ' . $lineNumberStyle . '>' . ($ldx + 1) . '</code>' . $line;
-        }
-        if ($lineSelected === $ldx) {
-            $line = '<code ' . $lineSelectedStyle . '>' . ($ldx + 1) . '</code>' . $line;
-        }
-
-        $lines[$ldx] = $line;
-
-        if (isset($this->options['lineOffset'], $this->options['lineLimit'])) {
-            $lines = array_slice($lines, $this->options['lineOffset'] + 1, $this->options['lineLimit']);
+        if ($ldx >= $offset && $limit > $clines) {
+            if ($withLineNumber) {
+                $line = '<code ' . $lineNumberStyle . '>' . ($ldx + 1) . '</code>' . $line;
+            }
+            if ($lineSelected === ($ldx + 1)) {
+                $line = '<code ' . $lineSelectedStyle . '>' . $line . '</code>';
+            }
+            $lines[] = $line;
         }
 
         if (empty($this->options['noPre'])) {
